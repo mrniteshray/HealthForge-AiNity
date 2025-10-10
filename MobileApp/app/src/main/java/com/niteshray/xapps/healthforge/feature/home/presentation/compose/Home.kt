@@ -47,7 +47,14 @@ fun HomeScreen(
             modifier = Modifier.padding(paddingValues)
         ) {
             composable(BottomNavItem.Home.route) {
-
+                HealthcareDashboard(
+                    onNavigateToAssistant = {
+                        //will implement later
+                    },
+                    onNavigateToAnalytics = {
+//                        will implement later
+                    }
+                )
             }
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen()

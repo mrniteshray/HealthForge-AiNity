@@ -73,7 +73,6 @@ fun HealthcareDashboard(
     val isTasksLoading by viewModel.isTasksLoading.collectAsState()
     val isProcessingReport by viewModel.isLoading
     val errorMessage by viewModel.errorMessage
-//    val userName by viewModel.userName.collectAsStateWithLifecycle()
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -164,18 +163,6 @@ fun HealthcareDashboard(
             )
         }
         
-        // Debug Section for testing notifications and TTS
-        item {
-            DebugTestSection(
-                onTestNotification = {
-                    viewModel.testNotificationAndTTS(context)
-                },
-                onScheduleTestReminder = {
-                    viewModel.scheduleTestReminder(context)
-                }
-            )
-        }
-        
         // Processing indicator
         if (isProcessingReport) {
             item {
@@ -199,7 +186,7 @@ fun HealthcareDashboard(
                         showEditTaskDialog = true
                     },
                     onTaskDelete = { taskId ->
-                        viewModel.deleteTask(taskId, context)
+                        viewModel.deleteTask(taskId)
                     }
                 )
             }
@@ -212,20 +199,6 @@ fun HealthcareDashboard(
         }
     }
 
-        // AI Assistant FAB
-        FloatingActionButton(
-            onClick = onNavigateToAssistant,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = Icons.Default.SmartToy,
-                contentDescription = "Open AI Assistant",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-        }
     }
 
     // Add Medication Dialog
@@ -248,7 +221,7 @@ fun HealthcareDashboard(
                         icon = Icons.Filled.Medication,
                         priority = Priority.HIGH
                     )
-                    viewModel.addTask(task,context)
+                    viewModel.addTask(task)
                 }
                 showAddMedicationDialog = false
             }
@@ -260,8 +233,7 @@ fun HealthcareDashboard(
         AddTaskDialog(
             onDismiss = { showAddTaskDialog = false },
             onConfirm = { newTask ->
-                viewModel.addTask(newTask,context)
-                showAddTaskDialog = false
+                viewModel.addTask(newTask)
             }
         )
     }
@@ -275,7 +247,7 @@ fun HealthcareDashboard(
                 taskToEdit = null
             },
             onConfirm = { updatedTask ->
-                viewModel.updateTask(updatedTask, context)
+                viewModel.updateTask(updatedTask)
                 showEditTaskDialog = false
                 taskToEdit = null
             }
