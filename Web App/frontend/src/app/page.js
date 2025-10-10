@@ -1,3 +1,4 @@
+import CTASection from "@/components/CTASection";
 import FeaturesSection from "@/components/FeaturesSection";
 import Header from "@/components/Header";
 import HowItWorks from "@/components/HowItWorks";
@@ -13,6 +14,7 @@ export default function Home() {
       <FeaturesSection />
       <HowItWorks />
       <TestimonialsSection />
+      <CTASection />
     </div>
   );
 }
