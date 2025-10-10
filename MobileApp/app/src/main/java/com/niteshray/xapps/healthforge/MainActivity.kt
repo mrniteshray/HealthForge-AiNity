@@ -114,8 +114,6 @@ fun App(){
             )
         }
 
-
-
         composable(Routes.UserSetup.route){
             UserSetupScreen(
                 onProfileComplete = { userHealthInfo ->
