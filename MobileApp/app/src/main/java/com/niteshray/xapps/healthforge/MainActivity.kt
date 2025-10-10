@@ -24,6 +24,7 @@ import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.SignupS
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.UserRole
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.UserSetupScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.viewmodel.AuthViewModel
+import com.niteshray.xapps.healthforge.feature.home.presentation.compose.HomeScreen
 import com.niteshray.xapps.healthforge.ui.theme.HealthForgeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -153,6 +154,18 @@ fun App(){
                     navController.popBackStack()
                 },
                 authViewModel = authViewModel
+            )
+        }
+
+        composable(Routes.Home.route){
+            HomeScreen(
+                onLogout = {
+                    authViewModel.performLogout()
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.Home.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
