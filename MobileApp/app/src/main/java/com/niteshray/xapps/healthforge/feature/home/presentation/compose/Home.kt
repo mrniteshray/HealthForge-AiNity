@@ -50,7 +50,7 @@ fun HomeScreen(
 
             }
             composable(BottomNavItem.Profile.route) {
-
+                ProfileScreen()
             }
         }
     }
