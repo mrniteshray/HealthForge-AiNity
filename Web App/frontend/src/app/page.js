@@ -1,4 +1,6 @@
+import CTASection from "@/components/CTASection";
 import FeaturesSection from "@/components/FeaturesSection";
+import FooterSection from "@/components/Footer";
 import Header from "@/components/Header";
 import HowItWorks from "@/components/HowItWorks";
 import Navbar from "@/components/Navbar";
@@ -13,6 +15,8 @@ export default function Home() {
       <FeaturesSection />
       <HowItWorks />
       <TestimonialsSection />
+      <CTASection />
+      <FooterSection />
     </div>
   );
 }
