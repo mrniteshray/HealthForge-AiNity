@@ -1,5 +1,6 @@
 package com.niteshray.xapps.healthforge.feature.home.presentation.compose
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,50 +26,24 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.*
-
-data class ProfileUiState(
-    val isLoading: Boolean = false,
-    val userProfile: UserProfileData? = null,
-    val userHealthInfo: UserBasicHealthInfo? = null,
-    val errorMessage: String? = null
-)
-
-data class UserProfileData(
-    val uid: String = "",
-    val name: String = "",
-    val email: String = "",
-    val role: String = "",
-    val createdAt: Long = 0L
-)
-
+import com.niteshray.xapps.healthforge.feature.auth.presentation.viewmodel.AuthViewModel
+import com.niteshray.xapps.healthforge.feature.home.presentation.viewmodel.ProfileViewModel
 
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val profileUiState by profileViewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showEditHealthDialog by remember { mutableStateOf(false) }
 
-    val demoUserProfile = UserProfileData(
-        name = "Nitesh Ray",
-        email = "nitesh@example.com",
-        role = "Patient"
-    )
-
-    val demoHealthInfo = UserBasicHealthInfo(
-        height = "175",
-        weight = "70",
-        age = "25",
-        bloodType = BloodType.A_POSITIVE,
-        gender = Gender.MALE,
-        medicalCondition = MedicalCondition.NONE,
-        allergies = "None",
-        emergencyContact = "9876543210"
-    )
-
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         // Background gradient
         Box(
             modifier = Modifier
@@ -91,41 +66,61 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
             contentPadding = PaddingValues(vertical = 24.dp)
         ) {
-            // Hero Profile Section
-            item {
-                ModernProfileHeader(
-                    userProfile = demoUserProfile,
-                    onEditClick = { showEditProfileDialog = true }
-                )
-            }
+            if (profileUiState.isLoading) {
+                item {
+                    ModernLoadingCard()
+                }
+            } else if (profileUiState.errorMessage != null) {
+                item {
+                    ModernErrorCard(
+                        message = profileUiState.errorMessage!!,
+                        onRetry = { profileViewModel.refreshProfile() }
+                    )
+                }
+            } else {
+                // Hero Profile Section
+                item {
+                    ModernProfileHeader(
+                        userProfile = profileUiState.userProfile,
+                        onEditClick = { showEditProfileDialog = true }
+                    )
+                }
 
-            // Health Stats Overview
-            item {
-                ModernHealthStatsCard(
-                    healthInfo = demoHealthInfo,
-                    onEditClick = { showEditHealthDialog = true }
-                )
-            }
+                // Health Stats Overview
+                profileUiState.userHealthInfo?.let { healthInfo ->
+                    item {
+                        ModernHealthStatsCard(
+                            healthInfo = healthInfo,
+                            profileViewModel = profileViewModel,
+                            onEditClick = { showEditHealthDialog = true }
+                        )
+                    }
+                }
 
-            // Health Details Section
-            item {
-                ModernHealthDetailsCard(healthInfo = demoHealthInfo)
-            }
+                // Health Details Section
+                profileUiState.userHealthInfo?.let { healthInfo ->
+                    item {
+                        ModernHealthDetailsCard(healthInfo = healthInfo)
+                    }
+                }
 
-            // Quick Actions (Placeholder)
-            item {
-                ModernQuickActionsCard()
-            }
+                // Quick Actions
+                item {
+                    ModernQuickActionsCard()
+                }
 
-            // Settings Section (Placeholder)
-            item {
-                ModernSettingsCard()
-            }
+                // Settings Section
+                item {
+                    ModernSettingsCard()
+                }
 
-            // Logout Button
-            item {
-                ModernLogoutButton(onLogout = { showLogoutDialog = true })
-                Spacer(modifier = Modifier.height(24.dp))
+                // Logout Button
+                item {
+                    ModernLogoutButton(
+                        onLogout = { showLogoutDialog = true }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
             }
         }
     }
@@ -135,6 +130,7 @@ fun ProfileScreen(
         ModernLogoutDialog(
             onConfirm = {
                 showLogoutDialog = false
+                authViewModel.performLogout()
                 onLogout()
             },
             onDismiss = { showLogoutDialog = false }
@@ -142,37 +138,17 @@ fun ProfileScreen(
     }
 
     if (showEditProfileDialog) {
+
     }
 
     if (showEditHealthDialog) {
+
     }
-}
-
-@Composable
-private fun ModernHealthStatsCard(
-    healthInfo: UserBasicHealthInfo,
-    onEditClick: () -> Unit
-) {
-    val bmi = calculateBMI(healthInfo.weight.toInt(), healthInfo.height.toInt())
-    val bmiCategory = getBMICategory(bmi)
-}
-
-private fun calculateBMI(weight: Int, height: Int): Float {
-    val heightInMeters = height / 100f
-    return if (heightInMeters > 0) (weight / (heightInMeters * heightInMeters)) else 0f
-}
-
-private fun getBMICategory(bmi: Float): String = when {
-    bmi < 18.5 -> "Underweight"
-    bmi in 18.5..24.9 -> "Normal"
-    bmi in 25.0..29.9 -> "Overweight"
-    bmi >= 30 -> "Obese"
-    else -> "Unknown"
 }
 
 @Composable
 private fun ModernProfileHeader(
-    userProfile: UserProfileData,
+    userProfile: com.niteshray.xapps.healthforge.feature.home.presentation.viewmodel.UserProfileData?,
     onEditClick: () -> Unit
 ) {
     Card(
@@ -239,6 +215,14 @@ private fun ModernProfileHeader(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // User Information
+                Text(
+                    text = userProfile?.name ?: "Loading...",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
                 Text(
                     text = userProfile?.email ?: "",
@@ -388,6 +372,129 @@ private fun ModernErrorCard(
     }
 }
 
+@Composable
+private fun ModernHealthStatsCard(
+    healthInfo: com.niteshray.xapps.healthforge.feature.auth.presentation.compose.UserBasicHealthInfo,
+    profileViewModel: ProfileViewModel,
+    onEditClick: () -> Unit
+) {
+    val bmi = profileViewModel.calculateBMI(healthInfo.weight, healthInfo.height)
+    val bmiCategory = profileViewModel.getBMICategory(bmi)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Health Overview",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                IconButton(onClick = onEditClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Edit Health Info",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // BMI Highlight Card
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = when (bmiCategory) {
+                        "Normal" -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        "Underweight" -> Color(0xFF2196F3).copy(alpha = 0.1f)
+                        "Overweight" -> Color(0xFFFF9800).copy(alpha = 0.1f)
+                        "Obese" -> Color(0xFFF44336).copy(alpha = 0.1f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    }
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        tint = when (bmiCategory) {
+                            "Normal" -> Color(0xFF4CAF50)
+                            "Underweight" -> Color(0xFF2196F3)
+                            "Overweight" -> Color(0xFFFF9800)
+                            "Obese" -> Color(0xFFF44336)
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "BMI: $bmi",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = bmiCategory,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Health Stats Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ModernStatCard(
+                    icon = Icons.Filled.Height,
+                    label = "Height",
+                    value = "${healthInfo.height}",
+                    unit = "cm",
+                    modifier = Modifier.weight(1f)
+                )
+                ModernStatCard(
+                    icon = Icons.Filled.FitnessCenter,
+                    label = "Weight",
+                    value = "${healthInfo.weight}",
+                    unit = "kg",
+                    modifier = Modifier.weight(1f)
+                )
+                ModernStatCard(
+                    icon = Icons.Filled.Cake,
+                    label = "Age",
+                    value = "${healthInfo.age}",
+                    unit = "yrs",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun ModernStatCard(
