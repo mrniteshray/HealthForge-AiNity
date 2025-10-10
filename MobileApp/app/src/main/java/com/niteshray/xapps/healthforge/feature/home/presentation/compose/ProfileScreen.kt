@@ -129,17 +129,20 @@ fun ProfileScreen(
     }
 
     if (showEditProfileDialog) {
-        @Composable
-        fun EditProfileDialog(
-            userProfile: UserProfileData?,
-            profileViewModel: ProfileViewModel,
+        EditProfileDialog(
+            profileUiState.userProfile,
+            profileViewModel
         ){
             showEditProfileDialog = false
         }
     }
 
     if (showEditHealthDialog) {
-
+        EditHealthInfoDialog(
+            healthInfo = profileUiState.userHealthInfo,
+            profileViewModel = profileViewModel,
+            onDismiss = { showEditHealthDialog = false }
+        )
     }
 }
 
