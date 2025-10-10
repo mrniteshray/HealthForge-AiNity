@@ -1,8 +1,12 @@
 package com.niteshray.xapps.healthforge.core.di
 
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.niteshray.xapps.healthforge.core.utils.Constants.cerebasApiKey
+import com.niteshray.xapps.healthforge.feature.auth.data.Authentication
+import com.niteshray.xapps.healthforge.feature.auth.domain.repo.AuthRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -105,4 +109,28 @@ class NetworkModule {
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
+
+    @Provides
+    @Singleton
+    fun provideAuthApiService(@Named("BackendRetrofit") retrofit: Retrofit): Authentication =
+        retrofit.create(Authentication::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        authApiService: Authentication,
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore
+    ): AuthRepository =
+        AuthRepository(authApiService, firebaseAuth, firestore)
+
+    @Provides
+    @Singleton
+    fun provideFirestore() : FirebaseFirestore{
+        return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 }
