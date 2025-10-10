@@ -148,7 +148,7 @@ fun ProfileScreen(
 
 @Composable
 private fun ModernProfileHeader(
-    userProfile: com.niteshray.xapps.healthforge.feature.home.presentation.viewmodel.UserProfileData?,
+    userProfile: UserProfileData?,
     onEditClick: () -> Unit
 ) {
     Card(

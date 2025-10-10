@@ -34,6 +34,16 @@ class NetworkModule {
 
     @Provides
     @Singleton
+    fun provideFirestore() : FirebaseFirestore{
+        return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
     fun provideBaseOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor
     ): OkHttpClient =
@@ -126,11 +136,6 @@ class NetworkModule {
 
     @Provides
     @Singleton
-    fun provideFirestore() : FirebaseFirestore{
-        return FirebaseFirestore.getInstance()
-    }
-
-    @Provides
-    @Singleton
-    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+    fun provideCerebrasApi(@Named("CerebrasRetrofit") retrofit: Retrofit): CerebrasApi =
+        retrofit.create(CerebrasApi::class.java)
 }
