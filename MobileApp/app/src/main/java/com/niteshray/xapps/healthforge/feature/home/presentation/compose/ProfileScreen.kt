@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.*
 import com.niteshray.xapps.healthforge.feature.auth.presentation.viewmodel.AuthViewModel
 import com.niteshray.xapps.healthforge.feature.home.presentation.viewmodel.ProfileViewModel
+import com.niteshray.xapps.healthforge.feature.home.presentation.viewmodel.UserProfileData
 
 @Composable
 fun ProfileScreen(
@@ -128,7 +129,13 @@ fun ProfileScreen(
     }
 
     if (showEditProfileDialog) {
-
+        @Composable
+        fun EditProfileDialog(
+            userProfile: UserProfileData?,
+            profileViewModel: ProfileViewModel,
+        ){
+            showEditProfileDialog = false
+        }
     }
 
     if (showEditHealthDialog) {
@@ -220,22 +227,6 @@ private fun ModernProfileHeader(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
-
-                userProfile?.role?.let { role ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text(
-                            text = role.replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                        )
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
