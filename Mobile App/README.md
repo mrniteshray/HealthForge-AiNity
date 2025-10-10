@@ -1,1 +1,0 @@
-# HealthForge-AiNity - Mobile App
