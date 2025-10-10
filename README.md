@@ -60,34 +60,23 @@ HealthForge provides a Generative AI–driven healthcare companion app that:
 * Displays care tasks in a simple, **actionable checklist**.
 * Tracks progress and motivates adherence with completion streaks.
 
-### 🗣️ 3. AI + Voice Health Assistant
+### 🍛 3. NutriAI — Smart Indian Diet Coach
+* **AI-powered dynamic nutrition module** built to create **disease-specific, regional, and affordable Indian meal plans**.
+* Adapts to local ingredients, budget, and cultural preferences.
+* Uses food photo recognition and provides smart substitutions.
+
+### 🗣️ 4. AI + Voice Health Assistant
 * Conversational chatbot trained on medical knowledge.
 * Supports **multilingual voice and text** interactions.
 * Explains recommendations (e.g., *“Your sugar levels improved by 10%, great progress!”*).
 
-### 🔔 4. Smart Notifications
+### 🔔 5. Smart Notifications
 * Automated, reliable reminders for medicine, hydration, meals, and follow-ups.
 * Uses **Android WorkManager/AlarmManager** for mobile scheduling.
 
-### 📊 5. Health Analytics Dashboard
+### 📊 6. Health Analytics Dashboard
 * Visualizes progress through charts and trend graphs.
 * Tracks daily compliance, vitals, and lifestyle changes.
-
----
-
-## 🍛 NutriAI — Smart Indian Diet Coach
-
-NutriAI is HealthForge’s AI-powered dynamic nutrition module, built to create **disease-specific, regional, and affordable Indian meal plans**.
-
-| Feature | Description |
-| :--- | :--- |
-| **Customized Plans** | Generates tailored Indian diet plans for conditions like diabetes, PCOS, hypertension. |
-| **Regional Focus** | Strictly provides **Indian meals only** (North, South, East, West cuisines). |
-| **Adaptability** | Adapts to local ingredients, budget, and seasonal foods. |
-| **Image Recognition** | Uses food photo recognition to help estimate nutrition. |
-| **Smart Substitution** | Chatbot support for substitutions (e.g., *"No quinoa? Try jowar!"*). |
-| **Logistics** | Generates a **smart grocery list** based on the user’s plan. |
-| **Multilingual** | Offline and multilingual support (Hindi, Marathi, Tamil, Bengali, Telugu, etc.). |
 
 ---
 
