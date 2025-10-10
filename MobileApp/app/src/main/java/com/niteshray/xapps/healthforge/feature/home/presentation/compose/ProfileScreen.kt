@@ -104,16 +104,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Quick Actions
-                item {
-                    ModernQuickActionsCard()
-                }
-
-                // Settings Section
-                item {
-                    ModernSettingsCard()
-                }
-
                 // Logout Button
                 item {
                     ModernLogoutButton(
