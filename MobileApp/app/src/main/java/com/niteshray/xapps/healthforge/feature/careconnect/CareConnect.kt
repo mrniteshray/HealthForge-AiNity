@@ -1,5 +1,6 @@
 package com.niteshray.xapps.healthforge.feature.careconnect
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.niteshray.xapps.healthforge.feature.careconnect.data.models.*
 import com.niteshray.xapps.healthforge.feature.careconnect.presentation.compose.AddGuardianDialog
 import java.text.SimpleDateFormat
@@ -29,37 +32,10 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CareConnectScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: com.niteshray.xapps.healthforge.feature.careconnect.presentation.viewmodel.CareConnectViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
-    var showAddGuardianDialog by remember { mutableStateOf(false) }
-
-    // Simple dummy data
-    val mockGuardians = listOf(
-        Guardian(
-            id = "1",
-            name = "Dr. Sarah Johnson",
-            email = "sarah.johnson@gmail.com",
-            relationship = GuardianRelationship.DOCTOR,
-            permissions = listOf(PermissionType.VIEW_HEALTH_SUMMARY)
-        ),
-        Guardian(
-            id = "2", 
-            name = "Mom (Linda)",
-            email = "linda.doe@gmail.com",
-            relationship = GuardianRelationship.PARENT,
-            permissions = listOf(PermissionType.VIEW_TASK_PROGRESS)
-        )
-    )
-
-    val mockGuardees = listOf(
-        Guardee(
-            id = "1",
-            name = "John Doe Jr.",
-            email = "john.jr@gmail.com", 
-            relationship = GuardianRelationship.CHILD,
-            permissionsGranted = listOf(PermissionType.VIEW_TASK_PROGRESS)
-        )
-    )
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = modifier
@@ -69,68 +45,136 @@ fun CareConnectScreen(
     ) {
         // Simple Header
         SimpleHeader(
-            onAddGuardian = { showAddGuardianDialog = true }
+            onAddGuardian = { viewModel.showAddGuardianDialog() }
         )
         
         Spacer(modifier = Modifier.height(24.dp))
         
         // Stats Row
         SimpleStatsRow(
-            guardianCount = mockGuardians.size,
-            guardeeCount = mockGuardees.size
+            guardianCount = uiState.guardians.size,
+            guardeeCount = uiState.guardees.size
         )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Content
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Guardians Section
-            item {
-                SectionTitle(
-                    title = "My Guardians",
-                    subtitle = "People monitoring your health"
-                )
+        // Show loading or error states
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
             
-            items(mockGuardians) { guardian ->
-                SimplePersonItem(
-                    name = guardian.name,
-                    email = guardian.email,
-                    relationship = guardian.relationship.displayName,
-                    icon = guardian.relationship.icon,
-                    isGuardian = true
-                )
+            uiState.errorMessage != null -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Error",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            TextButton(
+                                onClick = { viewModel.clearError() }
+                            ) {
+                                Text("Dismiss")
+                            }
+                            TextButton(
+                                onClick = { viewModel.refreshData() }
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
             }
             
-            // Guardees Section  
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                SectionTitle(
-                    title = "People I'm Guarding", 
-                    subtitle = "People you monitor"
-                )
-            }
-            
-            items(mockGuardees) { guardee ->
-                SimplePersonItem(
-                    name = guardee.name,
-                    email = guardee.email,
-                    relationship = guardee.relationship.displayName,
-                    icon = guardee.relationship.icon,
-                    isGuardian = false
-                )
+            else -> {
+                // Content
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Guardians Section
+                    item {
+                        SectionTitle(
+                            title = "My Guardians",
+                            subtitle = "People monitoring your health"
+                        )
+                    }
+                    
+                    if (uiState.guardians.isEmpty()) {
+                        item {
+                            EmptyStateCard(
+                                title = "No Guardians Yet",
+                                message = "Add people who can monitor your health and receive updates.",
+                                icon = Icons.Filled.Security
+                            )
+                        }
+                    } else {
+                        items(uiState.guardians) { guardian ->
+                            SimplePersonItem(
+                                name = guardian.name,
+                                email = guardian.email,
+                                relationship = guardian.relationship.displayName,
+                                icon = guardian.relationship.icon,
+                                isGuardian = true,
+                                onRemove = { viewModel.removeGuardian(guardian.id) }
+                            )
+                        }
+                    }
+                    
+                    // Guardees Section  
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SectionTitle(
+                            title = "People I'm Guarding", 
+                            subtitle = "People you monitor"
+                        )
+                    }
+                    
+                    if (uiState.guardees.isEmpty()) {
+                        item {
+                            EmptyStateCard(
+                                title = "Not Guarding Anyone",
+                                message = "You haven't been added as a guardian yet. Wait for invitations from others.",
+                                icon = Icons.Filled.People
+                            )
+                        }
+                    } else {
+                        items(uiState.guardees) { guardee ->
+                            SimplePersonItem(
+                                name = guardee.name,
+                                email = guardee.email,
+                                relationship = guardee.relationship.displayName,
+                                icon = guardee.relationship.icon,
+                                isGuardian = false,
+                                onRemove = { viewModel.removeGuardee(guardee.id) }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 
     // Add Guardian Dialog
-    if (showAddGuardianDialog) {
+    if (uiState.showAddGuardianDialog) {
         AddGuardianDialog(
-            onDismiss = { showAddGuardianDialog = false },
-            onAdd = { _, _, _, _ ->
-                showAddGuardianDialog = false
+            onDismiss = { viewModel.hideAddGuardianDialog() },
+            onAdd = { email, relationship, permissions, message ->
+                viewModel.addGuardian(email, relationship, permissions, message)
             }
         )
     }
@@ -298,7 +342,9 @@ private fun SimplePersonItem(
     email: String, 
     relationship: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    isGuardian: Boolean
+    isGuardian: Boolean,
+    onRemove: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = Modifier
@@ -352,16 +398,16 @@ private fun SimplePersonItem(
             )
         }
         
-        // Status
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF4CAF50).copy(alpha = 0.1f)
+        // Remove button
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.size(40.dp)
         ) {
-            Text(
-                text = "Active",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF4CAF50),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Remove",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
             )
         }
     }
@@ -1589,6 +1635,57 @@ private fun ErrorContent(
             Button(onClick = onRetry) {
                 Text("Retry")
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateCard(
+    title: String,
+    message: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(48.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalTime
 import android.net.Uri
@@ -42,7 +43,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import kotlinx.coroutines.launch
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfReader
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor
@@ -57,7 +57,8 @@ fun HealthcareDashboard(
     modifier: Modifier = Modifier,
     onNavigateToAssistant: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
-    viewModel: NewHomeViewModel = hiltViewModel()
+    viewModel: NewHomeViewModel = hiltViewModel(),
+    notificationViewModel: com.niteshray.xapps.healthforge.feature.notifications.presentation.viewmodel.NotificationViewModel = hiltViewModel()
 ) {
     var medications by remember { mutableStateOf<List<Medication>>(emptyList()) }
     var showAddMedicationDialog by remember { mutableStateOf(false) }
@@ -73,6 +74,10 @@ fun HealthcareDashboard(
     val isTasksLoading by viewModel.isTasksLoading.collectAsState()
     val isProcessingReport by viewModel.isLoading
     val errorMessage by viewModel.errorMessage
+
+    // Notification state
+    val notificationUiState by notificationViewModel.uiState.collectAsState()
+    val notificationCount by notificationViewModel.notificationCount.collectAsState()
 
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -138,7 +143,9 @@ fun HealthcareDashboard(
                 HeaderSection(
                     greeting = greeting,
                     userName = "",
-                    currentTimeBlock = currentTimeBlock
+                    currentTimeBlock = currentTimeBlock,
+                    notificationCount = notificationCount,
+                    onNotificationClick = { notificationViewModel.showNotificationDialog() }
                 )
             }
 
@@ -278,41 +285,105 @@ fun HealthcareDashboard(
             }
         )
     }
+
+    // Notification Dialog
+    if (notificationUiState.showNotificationDialog) {
+        com.niteshray.xapps.healthforge.feature.notifications.presentation.compose.NotificationDialog(
+            pendingRequests = notificationUiState.pendingRequests,
+            isLoading = notificationUiState.isLoading,
+            error = notificationUiState.error,
+            onDismiss = { notificationViewModel.hideNotificationDialog() },
+            onAcceptRequest = { requestId -> notificationViewModel.acceptGuardianRequest(requestId) },
+            onRejectRequest = { requestId -> notificationViewModel.rejectGuardianRequest(requestId) },
+            onClearError = { notificationViewModel.clearError() }
+        )
+    }
 }
 
 @Composable
 fun HeaderSection(
     greeting: String,
     userName: String,
-    currentTimeBlock: TimeBlock
+    currentTimeBlock: TimeBlock,
+    notificationCount: Int = 0,
+    onNotificationClick: () -> Unit = {}
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "$greeting $userName!",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.weight(1f)
         ) {
-            Icon(
-                imageVector = currentTimeBlock.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Complete your daily health tasks",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                text = "$greeting $userName!",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = currentTimeBlock.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Complete your daily health tasks",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            }
+        }
+        
+        // Notification Button with Badge
+        Box {
+            IconButton(
+                onClick = onNotificationClick,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = "Notifications",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // Red Badge for notification count
+            if (notificationCount > 0) {
+                Surface(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset(x = 12.dp, y = (-12).dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.error
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = if (notificationCount > 9) "9+" else notificationCount.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onError,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -2,10 +2,14 @@ package com.niteshray.xapps.healthforge.feature.careconnect.presentation.viewmod
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.niteshray.xapps.healthforge.feature.careconnect.data.models.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 data class CareConnectUiState(
@@ -28,11 +32,15 @@ enum class CareConnectTab(val displayName: String) {
 
 @HiltViewModel
 class CareConnectViewModel @Inject constructor(
-    // TODO: Inject repository when implemented
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CareConnectUiState())
     val uiState: StateFlow<CareConnectUiState> = _uiState.asStateFlow()
+
+    private val currentUserId get() = firebaseAuth.currentUser?.uid
+    private val currentUserEmail get() = firebaseAuth.currentUser?.email
 
     init {
         loadData()
@@ -43,8 +51,12 @@ class CareConnectViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             try {
-                // TODO: Replace with actual API calls
-                loadMockData()
+                currentUserId?.let { userId ->
+                    loadGuardians(userId)
+                    loadGuardees(userId)
+                    loadPendingRequests(userId)
+                    updateStats()
+                }
                 _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -55,82 +67,388 @@ class CareConnectViewModel @Inject constructor(
         }
     }
 
-    private fun loadMockData() {
-        // Mock data for demonstration
-        val mockGuardians = listOf(
-            Guardian(
-                id = "1",
-                name = "Dr. Sarah Johnson",
-                email = "sarah.johnson@gmail.com",
-                phoneNumber = "+1234567890",
-                relationship = GuardianRelationship.DOCTOR,
-                permissions = listOf(
-                    PermissionType.VIEW_HEALTH_SUMMARY,
-                    PermissionType.VIEW_MEDICAL_REPORTS,
-                    PermissionType.RECEIVE_ALERTS
-                ),
-                lastActiveAt = System.currentTimeMillis() - 3600000 // 1 hour ago
-            ),
-            Guardian(
-                id = "2",
-                name = "Mom (Linda)",
-                email = "linda.doe@gmail.com",
-                phoneNumber = "+1234567891",
-                relationship = GuardianRelationship.PARENT,
-                permissions = listOf(
-                    PermissionType.VIEW_HEALTH_SUMMARY,
-                    PermissionType.VIEW_TASK_PROGRESS,
-                    PermissionType.RECEIVE_ALERTS
-                ),
-                lastActiveAt = System.currentTimeMillis() - 1800000 // 30 minutes ago
-            )
-        )
+    // Load guardians (people who can monitor current user)
+    private suspend fun loadGuardians(userId: String) {
+        try {
+            val guardianConnections = firestore
+                .collection("guardianConnections")
+                .whereEqualTo("guardeeId", userId)
+                .whereEqualTo("status", "ACCEPTED")
+                .get()
+                .await()
 
-        val mockGuardees = listOf(
-            Guardee(
-                id = "1",
-                name = "John Doe Jr.",
-                email = "john.jr@gmail.com",
-                phoneNumber = "+1234567892",
-                relationship = GuardianRelationship.CHILD,
-                permissionsGranted = listOf(
-                    PermissionType.VIEW_TASK_PROGRESS,
-                    PermissionType.MANAGE_TASKS
-                ),
-                lastActiveAt = System.currentTimeMillis() - 7200000 // 2 hours ago
-            )
-        )
+            val guardians = guardianConnections.documents.mapNotNull { doc ->
+                val guardianId = doc.getString("guardianId") ?: return@mapNotNull null
+                val guardianData = firestore.collection("users").document(guardianId).get().await()
+                
+                if (guardianData.exists()) {
+                    Guardian(
+                        id = guardianId,
+                        name = guardianData.getString("name") ?: "",
+                        email = guardianData.getString("email") ?: "",
+                        phoneNumber = guardianData.getString("phoneNumber") ?: "",
+                        relationship = GuardianRelationship.valueOf(
+                            doc.getString("relationship") ?: "OTHER"
+                        ),
+                        permissions = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
+                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                        } ?: emptyList(),
+                        isActive = doc.getBoolean("isActive") ?: true,
+                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        lastActiveAt = doc.getLong("lastActiveAt")
+                    )
+                } else null
+            }
 
-        val mockStats = CareConnectStats(
-            totalGuardians = mockGuardians.size,
-            totalGuardees = mockGuardees.size,
-            activeConnections = mockGuardians.size + mockGuardees.size,
-            pendingRequests = 1,
-            recentActivity = listOf(
-                ActivityItem(
-                    id = "1",
-                    type = ActivityType.GUARDIAN_ADDED,
-                    title = "New Guardian Added",
-                    description = "Dr. Sarah Johnson was added as your guardian",
-                    timestamp = System.currentTimeMillis() - 86400000 // 1 day ago
-                ),
-                ActivityItem(
-                    id = "2",
-                    type = ActivityType.DATA_ACCESSED,
-                    title = "Health Data Accessed",
-                    description = "Linda viewed your health summary",
-                    timestamp = System.currentTimeMillis() - 1800000 // 30 minutes ago
-                )
-            )
-        )
-
-        _uiState.value = _uiState.value.copy(
-            guardians = mockGuardians,
-            guardees = mockGuardees,
-            stats = mockStats
-        )
+            _uiState.value = _uiState.value.copy(guardians = guardians)
+        } catch (e: Exception) {
+            throw Exception("Failed to load guardians: ${e.message}")
+        }
     }
 
+    // Load guardees (people current user is monitoring)  
+    private suspend fun loadGuardees(userId: String) {
+        try {
+            val guardeeConnections = firestore
+                .collection("guardianConnections")
+                .whereEqualTo("guardianId", userId)
+                .whereEqualTo("status", "ACCEPTED")
+                .get()
+                .await()
+
+            val guardees = guardeeConnections.documents.mapNotNull { doc ->
+                val guardeeId = doc.getString("guardeeId") ?: return@mapNotNull null
+                val guardeeData = firestore.collection("users").document(guardeeId).get().await()
+                
+                if (guardeeData.exists()) {
+                    Guardee(
+                        id = guardeeId,
+                        name = guardeeData.getString("name") ?: "",
+                        email = guardeeData.getString("email") ?: "",
+                        phoneNumber = guardeeData.getString("phoneNumber") ?: "",
+                        relationship = GuardianRelationship.valueOf(
+                            doc.getString("relationship") ?: "OTHER"
+                        ),
+                        permissionsGranted = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
+                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                        } ?: emptyList(),
+                        isActive = doc.getBoolean("isActive") ?: true,
+                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        lastActiveAt = doc.getLong("lastActiveAt")
+                    )
+                } else null
+            }
+
+            _uiState.value = _uiState.value.copy(guardees = guardees)
+        } catch (e: Exception) {
+            throw Exception("Failed to load guardees: ${e.message}")
+        }
+    }
+
+    // Load pending guardian requests
+    private suspend fun loadPendingRequests(userId: String) {
+        try {
+            val currentUserEmail = currentUserEmail ?: return
+            val requests = firestore
+                .collection("guardianRequests")
+                .whereEqualTo("toUserEmail", currentUserEmail)
+                .whereEqualTo("status", RequestStatus.PENDING.name)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val pendingRequests = requests.documents.mapNotNull { doc ->
+                try {
+                    GuardianRequest(
+                        id = doc.id,
+                        fromUserId = doc.getString("fromUserId") ?: "",
+                        toUserId = doc.getString("toUserId") ?: "",
+                        fromUserName = doc.getString("fromUserName") ?: "",
+                        fromUserEmail = doc.getString("fromUserEmail") ?: "",
+                        toUserEmail = doc.getString("toUserEmail") ?: "",
+                        requestedPermissions = (doc.get("requestedPermissions") as? List<*>)?.mapNotNull { permission ->
+                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                        } ?: emptyList(),
+                        relationship = GuardianRelationship.valueOf(
+                            doc.getString("relationship") ?: "OTHER"
+                        ),
+                        message = doc.getString("message") ?: "",
+                        status = RequestStatus.valueOf(doc.getString("status") ?: "PENDING"),
+                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        respondedAt = doc.getLong("respondedAt")
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(pendingRequests = pendingRequests)
+        } catch (e: Exception) {
+            throw Exception("Failed to load pending requests: ${e.message}")
+        }
+    }
+
+    // Update stats based on loaded data
+    private fun updateStats() {
+        val currentState = _uiState.value
+        val stats = CareConnectStats(
+            totalGuardians = currentState.guardians.size,
+            totalGuardees = currentState.guardees.size,
+            activeConnections = currentState.guardians.size + currentState.guardees.size,
+            pendingRequests = currentState.pendingRequests.size
+        )
+        _uiState.value = _uiState.value.copy(stats = stats)
+    }
+
+    // Main function to add guardian - checks if user exists and sends request
+    fun addGuardian(
+        email: String,
+        relationship: GuardianRelationship,
+        permissions: List<PermissionType>,
+        message: String
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                
+                val currentUserId = currentUserId ?: throw Exception("User not authenticated")
+                val currentUserEmail = currentUserEmail ?: throw Exception("User email not found")
+                val currentUserName = getCurrentUserName()
+
+                // Check if target user exists in Firestore
+                val targetUser = findUserByEmail(email)
+                if (targetUser == null) {
+                    throw Exception("User with email $email not found. They need to register first.")
+                }
+
+                // Check if connection already exists
+                if (connectionExists(currentUserId, targetUser.id)) {
+                    throw Exception("Connection already exists with this user")
+                }
+
+                // Create guardian request
+                val requestId = createGuardianRequest(
+                    fromUserId = currentUserId,
+                    fromUserName = currentUserName,
+                    fromUserEmail = currentUserEmail,
+                    toUserId = targetUser.id,
+                    toUserEmail = email,
+                    relationship = relationship,
+                    permissions = permissions,
+                    message = message
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showAddGuardianDialog = false
+                )
+                
+                // Reload data to show updated state
+                loadData()
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Failed to send guardian request"
+                )
+            }
+        }
+    }
+
+    // Check if user exists by email
+    private suspend fun findUserByEmail(email: String): UserData? {
+        return try {
+            val querySnapshot = firestore
+                .collection("users")
+                .whereEqualTo("email", email)
+                .limit(1)
+                .get()
+                .await()
+
+            if (querySnapshot.documents.isNotEmpty()) {
+                val doc = querySnapshot.documents.first()
+                UserData(
+                    id = doc.id,
+                    email = doc.getString("email") ?: "",
+                    name = doc.getString("name") ?: ""
+                )
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Check if connection already exists between two users
+    private suspend fun connectionExists(userId1: String, userId2: String): Boolean {
+        return try {
+            val connection1 = firestore
+                .collection("guardianConnections")
+                .whereEqualTo("guardianId", userId1)
+                .whereEqualTo("guardeeId", userId2)
+                .get()
+                .await()
+
+            val connection2 = firestore
+                .collection("guardianConnections")
+                .whereEqualTo("guardianId", userId2)
+                .whereEqualTo("guardeeId", userId1)
+                .get()
+                .await()
+
+            connection1.documents.isNotEmpty() || connection2.documents.isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // Get current user's name
+    private suspend fun getCurrentUserName(): String {
+        return try {
+            currentUserId?.let { userId ->
+                val userDoc = firestore.collection("users").document(userId).get().await()
+                userDoc.getString("name") ?: "Unknown User"
+            } ?: "Unknown User"
+        } catch (e: Exception) {
+            "Unknown User"
+        }
+    }
+
+    // Create guardian request in Firestore
+    private suspend fun createGuardianRequest(
+        fromUserId: String,
+        fromUserName: String,
+        fromUserEmail: String,
+        toUserId: String,
+        toUserEmail: String,
+        relationship: GuardianRelationship,
+        permissions: List<PermissionType>,
+        message: String
+    ): String {
+        val requestData = mapOf(
+            "fromUserId" to fromUserId,
+            "fromUserName" to fromUserName,
+            "fromUserEmail" to fromUserEmail,
+            "toUserId" to toUserId,
+            "toUserEmail" to toUserEmail,
+            "relationship" to relationship.name,
+            "requestedPermissions" to permissions.map { it.name },
+            "message" to message,
+            "status" to RequestStatus.PENDING.name,
+            "createdAt" to System.currentTimeMillis(),
+            "respondedAt" to null
+        )
+
+        // Store request in target user's requests subcollection (so they can see it)
+        val requestRef = firestore
+            .collection("users")
+            .document(toUserId)
+            .collection("requests")
+            .add(requestData)
+            .await()
+
+        // Also store in global requests collection for easier management
+        firestore
+            .collection("guardianRequests")
+            .document(requestRef.id)
+            .set(requestData.plus("id" to requestRef.id))
+            .await()
+
+        return requestRef.id
+    }
+
+    // Accept guardian request
+    fun acceptGuardianRequest(requestId: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                
+                val currentUserId = currentUserId ?: throw Exception("User not authenticated")
+                
+                // Get request details
+                val requestDoc = firestore
+                    .collection("guardianRequests")
+                    .document(requestId)
+                    .get()
+                    .await()
+
+                if (!requestDoc.exists()) {
+                    throw Exception("Request not found")
+                }
+
+                val fromUserId = requestDoc.getString("fromUserId") ?: throw Exception("Invalid request")
+                val relationship = requestDoc.getString("relationship") ?: "OTHER"
+                val permissions = requestDoc.get("requestedPermissions") as? List<*> ?: null
+
+                // Create guardian connection
+                val connectionData = mapOf(
+                    "guardianId" to fromUserId,
+                    "guardeeId" to currentUserId,
+                    "relationship" to relationship,
+                    "permissions" to permissions,
+                    "status" to "ACCEPTED",
+                    "isActive" to true,
+                    "createdAt" to System.currentTimeMillis(),
+                    "lastActiveAt" to System.currentTimeMillis()
+                )
+
+                firestore
+                    .collection("guardianConnections")
+                    .add(connectionData)
+                    .await()
+
+                // Update request status
+                firestore
+                    .collection("guardianRequests")
+                    .document(requestId)
+                    .update(
+                        mapOf(
+                            "status" to RequestStatus.ACCEPTED.name,
+                            "respondedAt" to System.currentTimeMillis()
+                        )
+                    )
+                    .await()
+
+                // Reload data
+                loadData()
+                _uiState.value = _uiState.value.copy(isLoading = false)
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Failed to accept request"
+                )
+            }
+        }
+    }
+
+    // Reject guardian request
+    fun rejectGuardianRequest(requestId: String) {
+        viewModelScope.launch {
+            try {
+                // Update request status
+                firestore
+                    .collection("guardianRequests")
+                    .document(requestId)
+                    .update(
+                        mapOf(
+                            "status" to RequestStatus.REJECTED.name,
+                            "respondedAt" to System.currentTimeMillis()
+                        )
+                    )
+                    .await()
+
+                // Reload data
+                loadData()
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message ?: "Failed to reject request"
+                )
+            }
+        }
+    }
+
+    // UI State Management Functions
     fun selectTab(tab: CareConnectTab) {
         _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
@@ -143,35 +461,35 @@ class CareConnectViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showAddGuardianDialog = false)
     }
 
-    fun addGuardian(
-        email: String,
-        relationship: GuardianRelationship,
-        permissions: List<PermissionType>,
-        message: String
-    ) {
-        viewModelScope.launch {
-            try {
-                // TODO: Implement API call to send guardian request
-                
-                // For now, just close the dialog
-                hideAddGuardianDialog()
-                
-                // TODO: Show success message or update UI accordingly
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message ?: "Failed to send guardian request"
-                )
-            }
-        }
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
+    fun refreshData() {
+        loadData()
+    }
+
+    // Remove guardian connection
     fun removeGuardian(guardianId: String) {
         viewModelScope.launch {
             try {
-                // TODO: Implement API call to remove guardian
+                val currentUserId = currentUserId ?: return@launch
                 
-                val updatedGuardians = _uiState.value.guardians.filter { it.id != guardianId }
-                _uiState.value = _uiState.value.copy(guardians = updatedGuardians)
+                // Find and delete guardian connection
+                val connections = firestore
+                    .collection("guardianConnections")
+                    .whereEqualTo("guardianId", guardianId)
+                    .whereEqualTo("guardeeId", currentUserId)
+                    .get()
+                    .await()
+
+                connections.documents.forEach { doc ->
+                    doc.reference.delete().await()
+                }
+
+                // Reload data
+                loadData()
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     errorMessage = e.message ?: "Failed to remove guardian"
@@ -180,13 +498,27 @@ class CareConnectViewModel @Inject constructor(
         }
     }
 
+    // Remove guardee connection
     fun removeGuardee(guardeeId: String) {
         viewModelScope.launch {
             try {
-                // TODO: Implement API call to remove guardee
+                val currentUserId = currentUserId ?: return@launch
                 
-                val updatedGuardees = _uiState.value.guardees.filter { it.id != guardeeId }
-                _uiState.value = _uiState.value.copy(guardees = updatedGuardees)
+                // Find and delete guardee connection
+                val connections = firestore
+                    .collection("guardianConnections")
+                    .whereEqualTo("guardianId", currentUserId)
+                    .whereEqualTo("guardeeId", guardeeId)
+                    .get()
+                    .await()
+
+                connections.documents.forEach { doc ->
+                    doc.reference.delete().await()
+                }
+
+                // Reload data
+                loadData()
+
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     errorMessage = e.message ?: "Failed to remove guardee"
@@ -195,11 +527,10 @@ class CareConnectViewModel @Inject constructor(
         }
     }
 
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
-    }
-
-    fun refreshData() {
-        loadData()
-    }
+    // Data class for user lookup
+    private data class UserData(
+        val id: String,
+        val email: String,
+        val name: String
+    )
 }
