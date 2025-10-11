@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.niteshray.xapps.healthforge.feature.analytics.presentation.viewmodel.AnalyticsViewModel
 import com.niteshray.xapps.healthforge.feature.home.data.models.TaskTemplate
 import com.niteshray.xapps.healthforge.feature.home.data.models.DailyTaskRecord
 import java.time.LocalDate
@@ -19,16 +21,16 @@ import java.time.LocalDate
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
-    templates: List<TaskTemplate>,
-    templateRecords: Map<Int, List<DailyTaskRecord>>,
-    isLoading: Boolean,
-    error: String?,
     onNavigateBack: () -> Unit,
-    onRefresh: () -> Unit,
-    onRetry: () -> Unit,
-    onDateClick: (TaskTemplate, LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAnalyticsData()
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -60,7 +62,7 @@ fun AnalyticsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onRefresh) {
+                    IconButton(onClick = { viewModel.refreshData() }) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
                             contentDescription = "Refresh",
@@ -80,19 +82,21 @@ fun AnalyticsScreen(
                 .padding(paddingValues)
         ) {
             when {
-                isLoading -> LoadingState()
-                error != null -> {
+                uiState.isLoading -> LoadingState()
+                uiState.error != null -> {
                     ErrorState(
-                        error = error,
-                        onRetry = onRetry
+                        error = uiState.error!!,
+                        onRetry = { viewModel.loadAnalyticsData() }
                     )
                 }
-                templates.isEmpty() -> EmptyState()
+                uiState.templates.isEmpty() -> EmptyState()
                 else -> {
                     AnalyticsContent(
-                        templates = templates,
-                        templateRecords = templateRecords,
-                        onDateClick = onDateClick
+                        templates = uiState.templates,
+                        templateRecords = uiState.templateRecords,
+                        onDateClick = { template, date ->
+                            // Handle date click
+                        }
                     )
                 }
             }
@@ -258,20 +262,3 @@ private fun AnalyticsContent(
         }
     }
 }
-
-@Composable
-private fun AnalyticsScreenPreview() {
-    MaterialTheme {
-        AnalyticsScreen(
-            templates = emptyList(),
-            templateRecords = emptyMap(),
-            isLoading = false,
-            error = null,
-            onNavigateBack = {},
-            onRefresh = {},
-            onRetry = {},
-            onDateClick = { _, _ -> }
-        )
-    }
-}
-

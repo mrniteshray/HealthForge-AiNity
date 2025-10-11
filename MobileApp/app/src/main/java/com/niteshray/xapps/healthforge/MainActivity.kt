@@ -219,14 +219,9 @@ fun App(){
 
         composable(Routes.Analytics.route){
             AnalyticsScreen(
-                templates = emptyList(),
-                templateRecords = emptyMap(),
-                isLoading = false,
-                error = null,
-                onNavigateBack = {},
-                onRefresh = {},
-                onRetry = {},
-                onDateClick = { _, _ -> }
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
