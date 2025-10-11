@@ -157,16 +157,9 @@ private fun CleanHeaderSection() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "DietBuddy",
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 32.sp),
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "AI",
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
             )
         }
         
