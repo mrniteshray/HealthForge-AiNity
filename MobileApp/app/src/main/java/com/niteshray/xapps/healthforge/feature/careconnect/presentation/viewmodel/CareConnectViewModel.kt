@@ -380,9 +380,11 @@ class CareConnectViewModel @Inject constructor(
                 val permissions = requestDoc.get("requestedPermissions") as? List<*> ?: null
 
                 // Create guardian connection
+                // Note: fromUserId sent request asking currentUserId to be their guardian
+                // So currentUserId becomes guardian, fromUserId becomes guardee
                 val connectionData = mapOf(
-                    "guardianId" to fromUserId,
-                    "guardeeId" to currentUserId,
+                    "guardianId" to currentUserId,  // Person who accepted becomes guardian
+                    "guardeeId" to fromUserId,      // Person who sent request becomes guardee
                     "relationship" to relationship,
                     "permissions" to permissions,
                     "status" to "ACCEPTED",

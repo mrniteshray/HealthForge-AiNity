@@ -121,9 +121,11 @@ class NotificationViewModel @Inject constructor(
 
                 currentUserId?.let { userId ->
                     // Create guardian connection
+                    // Note: request.fromUserId sent request asking current user to be their guardian  
+                    // So current user becomes guardian, fromUserId becomes guardee
                     val connectionData = mapOf(
-                        "guardianId" to request.fromUserId,
-                        "guardeeId" to userId,
+                        "guardianId" to userId,          // Person who accepted becomes guardian
+                        "guardeeId" to request.fromUserId,  // Person who sent request becomes guardee
                         "relationship" to request.relationship.name,
                         "permissions" to request.requestedPermissions.map { it.name },
                         "status" to "ACCEPTED",
