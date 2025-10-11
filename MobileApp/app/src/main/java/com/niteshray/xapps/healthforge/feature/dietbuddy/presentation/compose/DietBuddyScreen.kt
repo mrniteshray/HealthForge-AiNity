@@ -3,19 +3,31 @@ package com.niteshray.xapps.healthforge.feature.dietbuddy.presentation.compose
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.niteshray.xapps.healthforge.feature.dietbuddy.data.models.*
 import com.niteshray.xapps.healthforge.feature.dietbuddy.presentation.viewmodel.DietBuddyViewModel
@@ -27,6 +39,9 @@ fun DietBuddyScreen(
     viewModel: DietBuddyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val savedPlans by viewModel.savedPlans.collectAsState()
+    var showMealEditDialog by remember { mutableStateOf(false) }
+    var selectedMeal by remember { mutableStateOf<DailyMeal?>(null) }
     
     val documentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -36,406 +51,509 @@ fun DietBuddyScreen(
         }
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                    )
-                )
-            ),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header Section
-        item {
-            HeaderSection()
-        }
-
-        // Upload Medical Reports Section
-        item {
-            UploadReportsSection(
-                uploadedReports = uiState.uploadedReports,
-                onUploadReport = { documentLauncher.launch("*/*") },
-                onRemoveReport = { reportId -> viewModel.removeMedicalReport(reportId) },
-                isLoading = uiState.isLoading
-            )
-        }
-
-        // Error Display
-        uiState.error?.let { error ->
-            item {
-                ErrorSection(
-                    error = error,
-                    onDismiss = { viewModel.clearError() }
-                )
-            }
-        }
-
-        // Diet Plan Display
-        uiState.generatedPlan?.let { plan ->
-            item {
-                DietPlanSection(
-                    dietPlan = plan,
-                    onRegenerate = { viewModel.regeneratePlan() }
-                )
-            }
-        }
-
-        // Quick Tips Section
-        if (uiState.generatedPlan == null) {
-            item {
-                QuickTipsSection()
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeaderSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
+                .fillMaxSize()
+                .background(Color(0xFFFFFFFE)),
+            contentPadding = PaddingValues(vertical = 20.dp, horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Restaurant,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+            // Header Section
+            item {
+                CleanHeaderSection()
+            }
+
+            // Upload Medical Reports Section
+            item {
+                CleanUploadSection(
+                    uploadedReports = uiState.uploadedReports,
+                    onUploadReport = { documentLauncher.launch("*/*") },
+                    onRemoveReport = { reportId -> viewModel.removeMedicalReport(reportId) },
+                    isLoading = uiState.isLoading
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Diet Buddy",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "Get personalized diet plans from your medical reports",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            }
+
+            // Error Display
+            uiState.error?.let { error ->
+                item {
+                    CleanErrorSection(
+                        error = error,
+                        onDismiss = { viewModel.clearError() }
                     )
                 }
             }
+
+            // Diet Plan Display
+            uiState.generatedPlan?.let { plan ->
+                item {
+                    CleanDietPlanSection(
+                        dietPlan = plan,
+                        onRegenerate = { viewModel.regeneratePlan() },
+                        onEditMeal = { meal ->
+                            selectedMeal = meal
+                            showMealEditDialog = true
+                        },
+                        onDeleteMeal = { meal ->
+                            viewModel.deleteMeal(meal)
+                        },
+                        onSavePlan = { planName ->
+                            viewModel.saveDietPlan(planName)
+                        }
+                    )
+                }
+            }
+
+            // Saved Diet Plans Section
+            item {
+                SavedDietPlansSection(
+                    savedPlans = savedPlans,
+                    onPlanClick = { planId ->
+                        viewModel.loadDietPlan(planId)
+                    },
+                    onDeletePlan = { planId ->
+                        viewModel.deleteSavedPlan(planId)
+                    },
+                    onSyncClick = {
+                        viewModel.syncWithCloud()
+                    }
+                )
+            }
+
+            // Quick Tips Section
+            if (uiState.generatedPlan == null) {
+                item {
+                    CleanTipsSection()
+                }
+            }
+        }
+
+        // Meal Edit Dialog
+        if (showMealEditDialog && selectedMeal != null) {
+            MealEditDialog(
+                meal = selectedMeal!!,
+                onDismiss = {
+                    showMealEditDialog = false
+                    selectedMeal = null
+                },
+                onSave = { updatedMeal ->
+                    viewModel.updateMeal(updatedMeal)
+                    showMealEditDialog = false
+                    selectedMeal = null
+                }
+            )
         }
     }
 }
 
 @Composable
-private fun UploadReportsSection(
+private fun CleanHeaderSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 16.dp)
+    ) {
+        // Main Title with clean typography
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "DietBuddy",
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "AI",
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp),
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Clean subtitle
+        Text(
+            text = "Personalized nutrition made simple",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun CleanUploadSection(
     uploadedReports: List<MedicalReport>,
     onUploadReport: () -> Unit,
     onRemoveReport: (String) -> Unit,
     isLoading: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
     ) {
-        Column(
+        // Clean upload button
+        Button(
+            onClick = onUploadReport,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .height(64.dp),
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            shape = RoundedCornerShape(20.dp)
         ) {
-            Text(
-                text = "Medical Reports",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Upload Button
-            Button(
-                onClick = onUploadReport,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Generating Diet Plan...")
-                } else {
-                    Icon(Icons.Filled.CloudUpload, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Upload Medical Report")
-                }
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 3.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    "AI is analyzing...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            } else {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    "Upload Medical Report",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
+        }
 
-            // Uploaded Reports List
-            if (uploadedReports.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
+        // Clean uploaded reports list
+        if (uploadedReports.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "Uploaded • ${uploadedReports.size} file${if (uploadedReports.size > 1) "s" else ""}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+            )
+            
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 uploadedReports.forEach { report ->
-                    Card(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            .background(
+                                Color(0xFFF8F9FA),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                            modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Description,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        shape = CircleShape
+                                    )
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = report.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            IconButton(onClick = { onRemoveReport(report.id) }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = "Remove",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
+                        }
+                        
+                        IconButton(
+                            onClick = { onRemoveReport(report.id) }
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remove",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
             }
         }
+        }
     }
-}
 
 @Composable
-private fun ErrorSection(
+private fun CleanErrorSection(
     error: String,
     onDismiss: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Color(0xFFFFEBEE).copy(alpha = 0.6f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Filled.Error,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        Color(0xFFE57373),
+                        shape = CircleShape
+                    )
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = error,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.weight(1f)
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 20.sp
             )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Dismiss",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
+        }
+        
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = "Dismiss",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
 
 @Composable
-private fun DietPlanSection(
+private fun CleanDietPlanSection(
     dietPlan: PersonalizedDietPlan,
-    onRegenerate: () -> Unit
+    onRegenerate: () -> Unit,
+    onEditMeal: (DailyMeal) -> Unit,
+    onDeleteMeal: (DailyMeal) -> Unit,
+    onSavePlan: (String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    var showSaveDialog by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        // Clean header with actions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column {
                 Text(
-                    text = "Your Personalized Diet Plan",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "Your Diet Plan",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                IconButton(onClick = onRegenerate) {
+                Text(
+                    text = "${dietPlan.dailyCalorieTarget} kcal daily target",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Save button
+                IconButton(
+                    onClick = { showSaveDialog = true },
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            shape = CircleShape
+                        )
+                ) {
                     Icon(
-                        imageVector = Icons.Filled.Refresh,
+                        Icons.Filled.Bookmark,
+                        contentDescription = "Save Plan",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Regenerate button
+                IconButton(
+                    onClick = onRegenerate,
+                    modifier = Modifier
+                        .background(
+                            Color(0xFFF5F5F5),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.Filled.Refresh,
                         contentDescription = "Regenerate",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            // Plan Overview
-            Text(
-                text = dietPlan.planOverview,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Daily Calorie Target
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Daily Calorie Target",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "${dietPlan.dailyCalorieTarget} kcal",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Daily Meals
-            Text(
-                text = "Daily Meal Plan",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-
+        // Clean meals list
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             dietPlan.dailyMeals.forEach { meal ->
-                Card(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        .background(
+                            Color(0xFFFAFAFA),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = meal.mealType.icon,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = meal.mealType.displayName,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = meal.mealName,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "${meal.calories} kcal",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        
+                    // Meal info
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = meal.mealType.displayName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = meal.mealName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         if (meal.description.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = meal.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Calories and actions
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "${meal.calories}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "kcal",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = { onEditMeal(meal) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Edit,
+                                    contentDescription = "Edit",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = { onDeleteMeal(meal) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
 
-            // Nutrition Tips
-            if (dietPlan.nutritionTips.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Nutrition Tips",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
+        // Clean nutrition tips
+        if (dietPlan.nutritionTips.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Tips for you",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 dietPlan.nutritionTips.take(3).forEach { tip ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp),
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(16.dp),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Lightbulb,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = tip,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 20.sp,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -443,50 +561,270 @@ private fun DietPlanSection(
             }
         }
     }
+    // Save Plan Dialog
+    if (showSaveDialog) {
+        var planName by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("Save Diet Plan") },
+            text = {
+                Column {
+                    Text(
+                        text = "Give your diet plan a name to save it for later use.",
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    OutlinedTextField(
+                        value = planName,
+                        onValueChange = { planName = it },
+                        label = { Text("Plan Name") },
+                        placeholder = { Text("e.g., Weekly Meal Plan") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (planName.isNotBlank()) {
+                            onSavePlan(planName.trim())
+                            showSaveDialog = false
+                        }
+                    },
+                    enabled = planName.isNotBlank()
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-private fun QuickTipsSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+private fun CleanTipsSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
     ) {
+        Text(
+            text = "How it works",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        val steps = listOf(
+            "Upload medical reports",
+            "AI analyzes your health",
+            "Get personalized meals",
+            "Follow your plan"
+        )
+        
         Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            steps.forEachIndexed { index, step ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Step number
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Text(
+                        text = step,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        }
+    }
+@Composable
+private fun MealEditDialog(
+    meal: DailyMeal,
+    onDismiss: () -> Unit,
+    onSave: (DailyMeal) -> Unit
+) {
+    var mealName by remember { mutableStateOf(meal.mealName) }
+    var calories by remember { mutableStateOf(meal.calories.toString()) }
+    var description by remember { mutableStateOf(meal.description) }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(24.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            Text(
-                text = "How it works",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            val tips = listOf(
-                "📋 Upload your medical reports (blood test, health checkup, etc.)",
-                "🤖 Our AI analyzes your health data",
-                "🍽️ Get personalized meal recommendations",
-                "📊 Follow your customized nutrition plan"
-            )
-            
-            tips.forEach { tip ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                // Clean header
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = tip,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "Edit Meal",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
-                if (tip != tips.last()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Meal Type Display
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = meal.mealType.icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = meal.mealType.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Meal Name Field
+                OutlinedTextField(
+                    value = mealName,
+                    onValueChange = { mealName = it },
+                    label = { Text("Meal Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(Icons.Filled.Restaurant, contentDescription = null)
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Calories Field
+                OutlinedTextField(
+                    value = calories,
+                    onValueChange = { calories = it.filter { char -> char.isDigit() } },
+                    label = { Text("Calories") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(Icons.Filled.LocalFireDepartment, contentDescription = null)
+                    },
+                    suffix = { Text("kcal") }
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Description Field
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(Icons.Filled.Description, contentDescription = null)
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                    
+                    Button(
+                        onClick = {
+                            val updatedMeal = meal.copy(
+                                mealName = mealName,
+                                calories = calories.toIntOrNull() ?: meal.calories,
+                                description = description
+                            )
+                            onSave(updatedMeal)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = mealName.isNotBlank() && calories.isNotBlank()
+                    ) {
+                        Text("Save Changes")
+                    }
                 }
             }
         }
