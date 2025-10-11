@@ -1,11 +1,19 @@
 "use client"
 
 import { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -20,15 +28,90 @@ const RegisterPage = () => {
       ...formData,
       [e.target.name]: value
     });
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const showSuccessToast = () => {
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Register data:', formData);
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate terms accepted
+    if (!formData.acceptTerms) {
+      setError('Please accept the terms and conditions');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Registration successful! Redirecting to login...');
+        showSuccessToast();
+        
+        // Store the token in localStorage if auto-login is enabled
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
+        
+        // Redirect to login page after successful registration
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        
+      } else {
+        setError(data.message || 'Registration failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-500">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+            <span>Registration successful! Redirecting to login...</span>
+          </div>
+        </div>
+      )}
+
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="max-w-md w-full">
@@ -53,6 +136,20 @@ const RegisterPage = () => {
 
           {/* Register Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            
+            {/* Success Message */}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                {success}
+              </div>
+            )}
+
             {/* Full Name Field */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -189,9 +286,17 @@ const RegisterPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300"
+              disabled={isLoading}
+              className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300 flex items-center justify-center"
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </form>
 
@@ -209,10 +314,12 @@ const RegisterPage = () => {
 
       {/* Right Side - Image */}
       <div className="hidden lg:flex lg:w-1/2 bg-gray-100">
-        <img
+        <Image
           src="/images/register.png"
           alt="Health and Nutrition"
           className="w-full h-full object-cover"
+          width={800}
+          height={600}
         />
       </div>
     </div>
