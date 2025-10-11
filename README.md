@@ -16,11 +16,11 @@
 
 ## 📘 Overview
 
-**HealthForge** is a next-generation **AI-powered healthcare application** designed to support patients immediately after hospital discharge and throughout their entire recovery journey. It is deployed as both a **mobile app** and a **web application**.
+**HealthForge** is a next-generation **AI-powered healthcare application** designed to support patients immediately after hospital discharge and throughout their recovery journey. It’s available as both a **mobile app** and a **web application**.
 
-It generates **personalized, adaptive care plans** and dynamic, region-specific **Indian diet recommendations** using Generative AI, ensuring that patients receive the right care, at the right time, in the right way.
+It generates **personalized, adaptive care plans** and region-specific **Indian diet recommendations** using Generative AI, ensuring that patients receive the right care, at the right time, in the right way.
 
-By combining AI-driven recovery management, smart nutrition planning (via **NutriAI**), and real-time health analytics, HealthForge empowers patients to recover confidently while keeping doctors informed and engaged.
+By combining AI-driven recovery management, smart nutrition planning (**NutriAI**), and real-time health analytics, HealthForge empowers patients to recover confidently while keeping doctors informed and engaged.
 
 ---
 
@@ -28,104 +28,129 @@ By combining AI-driven recovery management, smart nutrition planning (via **Nutr
 
 Patients discharged from hospitals often:
 
-* Receive static care instructions that don’t automatically adapt to their changing health status.
-* Struggle with diet planning, medicine tracking, and synthesizing post-discharge guidance.
-* Lack real-time support or reminders, increasing the risk of hospital **readmissions**.
-* Existing health apps fail to provide **personalized, AI-based recovery and nutrition management** tailored specifically to **Indian users**.
+* Receive static care instructions that don’t adapt to changing health conditions.
+* Struggle with diet planning, medicine tracking, and synthesizing post-discharge advice.
+* Lack real-time support, leading to **avoidable readmissions**.
+* Existing health apps fail to offer **personalized AI-based recovery and nutrition management** tailored to **Indian users**.
 
 ---
 
 ## ✅ Solution
 
-HealthForge provides a Generative AI–driven healthcare companion app that:
+HealthForge offers a **Generative AI–driven healthcare companion** that:
 
-* Analyzes medical reports and history to generate **adaptive recovery and diet plans**.
-* Offers a **multilingual AI health assistant** for instant guidance.
-* Tracks progress, alerts users, and **updates plans dynamically**.
-* Ensures affordable, fully **Indianized diet plans** via the integrated **NutriAI** module.
+* Analyzes reports and medical history to generate **adaptive care plans**.
+* Provides **AI voice + chat assistance** in multiple languages.
+* Dynamically updates plans based on real-time inputs.
+* Ensures **affordable Indianized diet plans** via **NutriAI**.
 
 ---
 
 ## 🚀 Core Modules & Features
 
 ### 🧠 1. Generative AI Care Plan
-* Scans uploaded medical reports and doctor notes.
-* Generates a personalized post-discharge plan (diet, medicine, rest, lifestyle).
-* **Updates dynamically** when new symptoms or vitals are reported.
+* Scans uploaded reports and doctor notes.
+* Creates personalized recovery plans (diet, medicine, lifestyle).
+* **Dynamically updates** when new vitals or symptoms appear.
+
+---
 
 ### ✅ 2. Interactive Daily Checklist
-* Displays care tasks in a simple, **actionable checklist**.
-* Tracks progress and motivates adherence with completion streaks.
+* Converts plans into **simple daily tasks**.
+* Tracks completion progress.
+* Uses streaks and rewards for motivation.
+
+---
 
 ### 🍛 3. NutriAI — Smart Indian Diet Coach
-* **AI-powered dynamic nutrition module** built to create **disease-specific, regional, and affordable Indian meal plans**.
-* Adapts to local ingredients, budget, and cultural preferences.
-* Uses food photo recognition and provides smart substitutions.
+* Generates **AI-driven meal plans** tailored to diseases and region.
+* Suggests affordable, culturally relevant Indian meals.
+* Supports food photo recognition and smart substitutions.
+
+---
 
 ### 🗣️ 4. AI + Voice Health Assistant
-* Conversational chatbot trained on medical knowledge.
-* Supports **multilingual voice and text** interactions.
-* Explains recommendations (e.g., *“Your sugar levels improved by 10%, great progress!”*).
+* Conversational assistant trained on verified medical data.
+* Works in **multiple Indian languages**.
+* Offers **contextual guidance** (“Your sugar levels improved by 10%, great job!”).
+
+---
 
 ### 🔔 5. Smart Notifications
-* Automated, reliable reminders for medicine, hydration, meals, and follow-ups.
-* Uses **Android WorkManager/AlarmManager** for mobile scheduling.
+* Reminders for medicines, hydration, meals, and follow-ups.
+* Implemented using **Android WorkManager / AlarmManager**.
+* Customizable frequency and tone.
+
+---
 
 ### 📊 6. Health Analytics Dashboard
-* Visualizes progress through charts and trend graphs.
-* Tracks daily compliance, vitals, and lifestyle changes.
+* Interactive visual dashboard to track progress.
+* Displays vitals, compliance, and improvement trends.
+
+---
+
+## 🩺 Extended Modules — Empowering Connected Care
+
+### 🧑‍🤝‍🧑 7. CareConnect — Guardians & Guardees Network
+
+**CareConnect** connects patients (Guardees) with their caregivers, family, or friends (Guardians) — making recovery collaborative and secure.
+
+**Features:**
+* 👥 **Your Health Network:** View connected guardians and guardees.  
+* ➕ **Add Guardians/Guardees:** Invite via email through an interactive “+ Add” popup modal.  
+* 🧾 **Guardian Cards:** Show total number of guardians and guardees.  
+* 🕒 **Activity History:**  
+  * *My Guardians* — View support received and shared updates.  
+  * *People I’m Guarding* — Track the health and activity of others you help.  
+* 🔔 **Instant Alerts:** Guardians receive updates if a guardee misses medicine or reports new symptoms.  
+* 🔒 **Secure Access:** Only verified guardians can access shared insights.
+
+> 💡 *CareConnect transforms recovery into a shared journey — blending empathy with smart connectivity.*
+
+---
+
+### 🍽️ 8. DietBuddy — Social Nutrition Tracker
+
+**DietBuddy** extends **NutriAI** into a collaborative, motivational nutrition experience.
+
+**Features:**
+* 🤖 **AI Nutrition Pairing:** Connect with users having similar health goals.  
+* 📸 **Meal Sharing:** Upload food photos, get instant AI feedback.  
+* 🧠 **Smart Comparison:** Compare meal quality with peers.  
+* 💬 **Motivational Feed:** Like, comment, and share healthy choices.  
+* 🏆 **Leaderboards & Streaks:** Gamified engagement for consistent nutrition.  
+* 🩺 **Integrated Insights:** Syncs with NutriAI to reflect nutrition score in health analytics.
+
+> 🥗 *DietBuddy makes nutrition fun, social, and rewarding.*
 
 ---
 
 ## 🛠 System Workflow
 
-1.  **User Authentication** → via Firebase Auth / MERN Stack.
-2.  **Profile Setup** → Health data (age, gender, condition, history).
-3.  **Report Upload** → Patient uploads reports or discharge summaries via App/Web.
-4.  **AI Engine Processing** → NLP model analyzes and generates a plan.
-5.  **Plan Generation** → Stored in Firestore / MongoDB with dynamic tasks.
-6.  **Daily Checklist & Reminders** → Shown in App/Web with smart notifications.
-7.  **AI Assistant Interaction** → Real-time chatbot/voice support.
-8.  **Analytics Dashboard** → Displays recovery and compliance metrics.
+1.  **User Authentication** → Firebase / MERN Auth.  
+2.  **Profile Setup** → Basic health info (age, condition, history).  
+3.  **Report Upload** → Upload reports or discharge summaries.  
+4.  **AI Engine Processing** → NLP analyzes and generates plan.  
+5.  **Plan Storage** → Saved in Firestore / MongoDB.  
+6.  **Checklist & Notifications** → Daily care tasks and reminders.  
+7.  **AI Assistant** → Real-time chat/voice-based guidance.  
+8.  **Analytics Dashboard** → Recovery insights visualized.  
+9.  **CareConnect + DietBuddy** → Network and nutrition collaboration.
 
 ---
 
-## 🧩 Tech Stack
+## 📈 Data Flow Overview
 
-| Component | Technology Used |
-| :--- | :--- |
-| **Mobile Frontend** | Android (Kotlin + Jetpack Compose) |
-| **Web Frontend** | Next.js |
-| **Primary Backend** | **MERN Stack** (MongoDB, Express, React/Next, Node.js) |
-| **Secondary Backend** | Firebase (Auth, Firestore, Cloud Storage) |
-| **AI Engine** | Transformer-based Generative AI (NLP) |
-| **Notifications (Mobile)** | Android WorkManager / AlarmManager |
-| **Database** | **MongoDB (MERN)** / Firebase Firestore |
-| **Chatbot / Voice Assistant** | GPT / Gemini-based Conversational AI |
-| **Nutrition Module** | **NutriAI** – AI meal planner integrated with regional food DB |
-
-### 📈 Data Flow Overview
 ```mermaid
 graph TD
-    subgraph Frontend
-        A[Patient Uploads Report/Symptoms]
-        B(App / Web)
-    end
-    
-    subgraph Backend & AI
-        C(AI Engine: Generates Plan)
-    end
-    
-    subgraph Database
-        D(Database: Stores Care Plan + Progress)
-    end
-
-    A --> B;
-    B --> C;
-    C --> D;
-    D --> B;
-    B --> E(Analytics Dashboard);
-    B --> F(AI Assistant);
-    F <--> A;
-    B --> G(Notification Service: Sends Reminders);
-    G --> A;
+    A[Patient Uploads Report/Symptoms] --> B(App / Web)
+    B --> C(AI Engine: NLP Analysis)
+    C --> D{Care Plan Generation}
+    D --> E[Database: Firestore / MongoDB]
+    E --> F[Daily Checklist & Notifications]
+    E --> G[Health Analytics Dashboard]
+    G --> H[AI Assistant]
+    E --> I[CareConnect Module]
+    E --> J[DietBuddy / NutriAI]
+    I <--> K[Guardians & Guardees Network]
+    J <--> L[Social Nutrition Feed]
