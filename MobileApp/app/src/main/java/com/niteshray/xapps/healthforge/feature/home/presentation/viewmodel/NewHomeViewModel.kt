@@ -157,14 +157,14 @@ class NewHomeViewModel @Inject constructor(
 
             try {
                 val prompt = """
-                    Analyze this medical report and create a list of health tasks only 8 tasks. Return ONLY a JSON object with this exact structure:
+                    Analyze this medical report and create a list of health tasks only 15 tasks, 5 Morning task, 5 - Afternoon and 5 - Evening tasks and do not include medicines. Return ONLY a JSON object with this exact structure:
                     {
                         "tasks": [
                             {
                                 "title": "Take Medicine Name",
                                 "description": "Brief description",
                                 "time": "9:00 AM",
-                                "category": "MEDICATION|EXERCISE|DIET|MONITORING|LIFESTYLE|GENERAL",
+                                "category": "EXERCISE|DIET|MONITORING|LIFESTYLE|GENERAL",
                                 "priority": "HIGH|MEDIUM|LOW"
                             }
                         ]

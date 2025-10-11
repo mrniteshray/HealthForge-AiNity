@@ -67,13 +67,13 @@ fun HealthcareDashboard(
     val currentHour = LocalTime.now().hour
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    
+
     // Use StateFlow from ViewModel for reactive task updates
     val tasks by viewModel.tasks.collectAsState()
     val isTasksLoading by viewModel.isTasksLoading.collectAsState()
     val isProcessingReport by viewModel.isLoading
     val errorMessage by viewModel.errorMessage
-    
+
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -89,7 +89,6 @@ fun HealthcareDashboard(
             }
         }
     }
-    
 
 
     val greeting = when (currentHour) {
@@ -121,95 +120,95 @@ fun HealthcareDashboard(
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                        )
                     )
-                )
-            ),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header Section
-        item {
-            HeaderSection(
-                greeting = greeting,
-                userName = "",
-                currentTimeBlock = currentTimeBlock
-            )
-        }
-
-        // Recovery Progress
-        item {
-            RecoveryProgressSection(
-                completedToday = tasks.count { it.isCompleted },
-                totalTasks = tasks.size
-            )
-        }
-
-            // Debug Section for testing notifications and TTS
+                ),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header Section
             item {
-                DebugTestSection(
-                    onTestNotification = {
-                        viewModel.testNotificationAndTTS(context)
+                HeaderSection(
+                    greeting = greeting,
+                    userName = "",
+                    currentTimeBlock = currentTimeBlock
+                )
+            }
+
+            // Recovery Progress
+            item {
+                RecoveryProgressSection(
+                    completedToday = tasks.count { it.isCompleted },
+                    totalTasks = tasks.size
+                )
+            }
+
+//            // Debug Section for testing notifications and TTS
+//            item {
+//                DebugTestSection(
+//                    onTestNotification = {
+//                        viewModel.testNotificationAndTTS(context)
+//                    },
+//                    onScheduleTestReminder = {
+//                        viewModel.scheduleTestReminder(context)
+//                    }
+//                )
+//            }
+
+            // Quick Actions Section
+            item {
+                QuickActionsSection(
+                    onUploadReport = {
+                        pdfPickerLauncher.launch("application/pdf")
                     },
-                    onScheduleTestReminder = {
-                        viewModel.scheduleTestReminder(context)
-                    }
+                    onViewAnalytics = onNavigateToAnalytics,
+                    onAddMedication = { showAddMedicationDialog = true },
+                    onAddTask = { showAddTaskDialog = true }
                 )
             }
 
-        // Quick Actions Section
-        item {
-            QuickActionsSection(
-                onUploadReport = { 
-                    pdfPickerLauncher.launch("application/pdf")
-                },
-                onViewAnalytics = onNavigateToAnalytics,
-                onAddMedication = { showAddMedicationDialog = true },
-                onAddTask = { showAddTaskDialog = true }
-            )
-        }
-        
-        // Processing indicator
-        if (isProcessingReport) {
-            item {
-                ProcessingIndicator()
+            // Processing indicator
+            if (isProcessingReport) {
+                item {
+                    ProcessingIndicator()
+                }
             }
-        }
 
-        // All Tasks Section or Empty State
-        if (currentTasks.isNotEmpty()) {
-            item {
-                AllTasksSection(
-                    tasks = currentTasks,
-                    onTaskToggle = { taskId ->
-                        val task = tasks.find { it.id == taskId }
-                        task?.let {
-                            viewModel.toggleTaskCompletion(taskId, !it.isCompleted)
+            // All Tasks Section or Empty State
+            if (currentTasks.isNotEmpty()) {
+                item {
+                    AllTasksSection(
+                        tasks = currentTasks,
+                        onTaskToggle = { taskId ->
+                            val task = tasks.find { it.id == taskId }
+                            task?.let {
+                                viewModel.toggleTaskCompletion(taskId, !it.isCompleted)
+                            }
+                        },
+                        onTaskEdit = { task ->
+                            taskToEdit = task
+                            showEditTaskDialog = true
+                        },
+                        onTaskDelete = { taskId ->
+                            viewModel.deleteTask(taskId,context)
                         }
-                    },
-                    onTaskEdit = { task ->
-                        taskToEdit = task
-                        showEditTaskDialog = true
-                    },
-                    onTaskDelete = { taskId ->
-                        viewModel.deleteTask(taskId,context)
-                    }
-                )
-            }
-        } else if (tasks.isEmpty() && !isProcessingReport) {
-            item {
-                EmptyTasksState(onUploadReport = { 
-                    pdfPickerLauncher.launch("application/pdf")
-                })
+                    )
+                }
+            } else if (tasks.isEmpty() && !isProcessingReport) {
+                item {
+                    EmptyTasksState(onUploadReport = {
+                        pdfPickerLauncher.launch("application/pdf")
+                    })
+                }
             }
         }
-    }
         // AI Assistant FAB
         FloatingActionButton(
             onClick = onNavigateToAssistant,
@@ -253,7 +252,7 @@ fun HealthcareDashboard(
             }
         )
     }
-    
+
     // Add Task Dialog
     if (showAddTaskDialog) {
         AddTaskDialog(
@@ -263,13 +262,13 @@ fun HealthcareDashboard(
             }
         )
     }
-    
+
     // Edit Task Dialog
     if (showEditTaskDialog && taskToEdit != null) {
         EditTaskDialog(
             task = taskToEdit!!,
-            onDismiss = { 
-                showEditTaskDialog = false 
+            onDismiss = {
+                showEditTaskDialog = false
                 taskToEdit = null
             },
             onConfirm = { updatedTask ->
@@ -437,9 +436,9 @@ fun QuickActionsSection(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         // Add Task Card (full width)
         Card(
             modifier = Modifier
@@ -589,7 +588,7 @@ fun AllTasksSection(
             // Group tasks by time block and display them
             val tasksByTimeBlock = tasks.groupBy { it.timeBlock }
             val orderedTimeBlocks = listOf(TimeBlock.MORNING, TimeBlock.AFTERNOON, TimeBlock.EVENING, TimeBlock.NIGHT)
-            
+
             orderedTimeBlocks.forEach { timeBlock ->
                 val timeBlockTasks = tasksByTimeBlock[timeBlock] ?: emptyList()
                 if (timeBlockTasks.isNotEmpty()) {
@@ -618,7 +617,7 @@ fun AllTasksSection(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                         )
                     }
-                    
+
                     // Tasks for this time block
                     timeBlockTasks.forEachIndexed { index, task ->
                         ModernTaskItem(
@@ -634,7 +633,7 @@ fun AllTasksSection(
                             )
                         }
                     }
-                    
+
                     // Add spacing between time blocks
                     if (timeBlock != orderedTimeBlocks.last { tasksByTimeBlock[it]?.isNotEmpty() == true }) {
                         Spacer(modifier = Modifier.height(16.dp))
@@ -723,7 +722,7 @@ fun ModernTaskItem(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -750,9 +749,9 @@ fun ModernTaskItem(
                     modifier = Modifier.size(18.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             // Checkbox indicator
             Box(
                 modifier = Modifier
@@ -802,7 +801,7 @@ fun ModernTaskItem(
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 // Priority dot for high priority tasks
                 if (task.priority == Priority.HIGH && !task.isCompleted) {
                     Box(
@@ -826,7 +825,7 @@ fun ModernTaskItem(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
+
             // Compact time and category
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -838,7 +837,7 @@ fun ModernTaskItem(
                     color = task.category.color,
                     fontWeight = FontWeight.Medium
                 )
-                
+
                 Text(
                     text = " • ${task.category.displayName}",
                     style = MaterialTheme.typography.labelMedium,
@@ -861,14 +860,14 @@ fun ModernTaskItem(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
+
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
                     if (onEdit != null) {
                         DropdownMenuItem(
-                            text = { 
+                            text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Filled.Edit,
@@ -886,10 +885,10 @@ fun ModernTaskItem(
                             }
                         )
                     }
-                    
+
                     if (onDelete != null) {
                         DropdownMenuItem(
-                            text = { 
+                            text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
@@ -914,7 +913,7 @@ fun ModernTaskItem(
             }
         }
     }
-    
+
     // Clean delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -1117,7 +1116,7 @@ fun RecoveryProgressSection(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            
+
             Text(
                 text = "$completedToday/$totalTasks tasks",
                 style = MaterialTheme.typography.bodyMedium,
@@ -1152,7 +1151,7 @@ fun AddMedicationDialog(
     var medicationTimes by remember { mutableStateOf<List<MedicationTime>>(emptyList()) }
     var showTimePicker by remember { mutableStateOf(false) }
     var currentTimeIndex by remember { mutableStateOf(-1) }
-    
+
     val timePickerState = rememberTimePickerState(
         initialHour = 8,
         initialMinute = 0
@@ -1256,7 +1255,7 @@ fun AddMedicationDialog(
                     itemsIndexed(medicationTimes) { index, time ->
                         TimeScheduleItem(
                             time = time,
-                            onTimeClick = { 
+                            onTimeClick = {
                                 currentTimeIndex = index
                                 showTimePicker = true
                             }
@@ -1268,7 +1267,7 @@ fun AddMedicationDialog(
                 if (selectedFrequency == FrequencyType.CUSTOM) {
                     item {
                         Button(
-                            onClick = { 
+                            onClick = {
                                 currentTimeIndex = medicationTimes.size
                                 showTimePicker = true
                             },
@@ -1325,9 +1324,9 @@ fun AddMedicationDialog(
                         val minute = timePickerState.minute
                         val timeBlock = getTimeBlockFromHour(hour)
                         val displayTime = String.format("%02d:%02d", hour, minute)
-                        
+
                         val newTime = MedicationTime(hour, minute, timeBlock, displayTime)
-                        
+
                         medicationTimes = if (currentTimeIndex < medicationTimes.size) {
                             // Update existing time
                             medicationTimes.toMutableList().apply {
@@ -1337,7 +1336,7 @@ fun AddMedicationDialog(
                             // Add new time
                             medicationTimes + newTime
                         }
-                        
+
                         showTimePicker = false
                     }
                 ) {
@@ -1436,7 +1435,7 @@ fun TimeScheduleItem(
                     )
                 }
             }
-            
+
             Icon(
                 imageVector = Icons.Filled.Edit,
                 contentDescription = "Edit time",
@@ -1463,13 +1462,13 @@ fun parseTimeString(timeString: String): Pair<Int, Int> {
         val hour = parts[0].toInt()
         val minute = hourMinute[0].toInt()
         val period = if (hourMinute.size > 1) hourMinute[1] else ""
-        
+
         val adjustedHour = when {
             period == "AM" && hour == 12 -> 0
             period == "PM" && hour != 12 -> hour + 12
             else -> hour
         }
-        
+
         Pair(adjustedHour, minute)
     } catch (e: Exception) {
         Pair(9, 0) // Default to 9:00 AM if parsing fails
@@ -1530,21 +1529,21 @@ suspend fun extractTextFromPDF(context: Context, pdfUri: Uri): String {
     return try {
         val inputStream: InputStream = context.contentResolver.openInputStream(pdfUri)
             ?: throw Exception("Could not open PDF file")
-        
+
         val pdfReader = PdfReader(inputStream)
         val pdfDocument = PdfDocument(pdfReader)
         val text = StringBuilder()
-        
+
         for (i in 1..pdfDocument.numberOfPages) {
             val page = pdfDocument.getPage(i)
             val pageText = PdfTextExtractor.getTextFromPage(page)
             text.append(pageText).append("\n")
         }
-        
+
         pdfDocument.close()
         pdfReader.close()
         inputStream.close()
-        
+
         text.toString().trim()
     } catch (e: Exception) {
         throw Exception("Failed to extract text from PDF: ${e.message}")
@@ -1576,7 +1575,7 @@ fun DebugTestSection(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -1594,7 +1593,7 @@ fun DebugTestSection(
                         fontSize = 12.sp
                     )
                 }
-                
+
                 // Schedule Test Reminder Button
                 Button(
                     onClick = onScheduleTestReminder,
@@ -1609,7 +1608,7 @@ fun DebugTestSection(
                     )
                 }
             }
-            
+
             Text(
                 text = "Use these buttons to test notifications and TTS. Check logs for debugging info.",
                 style = MaterialTheme.typography.bodySmall,
@@ -1643,7 +1642,7 @@ fun EmptyTasksState(onUploadReport: () -> Unit) {
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
-            
+
             Text(
                 text = "No Tasks Yet",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -1651,7 +1650,7 @@ fun EmptyTasksState(onUploadReport: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             )
-            
+
             Text(
                 text = "Upload your medical report to generate personalized daily health tasks",
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -1659,7 +1658,7 @@ fun EmptyTasksState(onUploadReport: () -> Unit) {
                 ),
                 textAlign = TextAlign.Center
             )
-            
+
             FilledTonalButton(
                 onClick = onUploadReport,
                 colors = ButtonDefaults.filledTonalButtonColors(
@@ -1691,7 +1690,7 @@ fun AddTaskDialog(
     var expandedCategory by remember { mutableStateOf(false) }
     var expandedPriority by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    
+
     val timePickerState = rememberTimePickerState(
         initialHour = 9,
         initialMinute = 0
@@ -1719,7 +1718,7 @@ fun AddTaskDialog(
                         singleLine = true
                     )
                 }
-                
+
                 item {
                     OutlinedTextField(
                         value = description,
@@ -1729,7 +1728,7 @@ fun AddTaskDialog(
                         maxLines = 3
                     )
                 }
-                
+
                 item {
                     ExposedDropdownMenuBox(
                         expanded = expandedCategory,
@@ -1745,7 +1744,7 @@ fun AddTaskDialog(
                                 .menuAnchor()
                                 .fillMaxWidth()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = expandedCategory,
                             onDismissRequest = { expandedCategory = false }
@@ -1762,7 +1761,7 @@ fun AddTaskDialog(
                         }
                     }
                 }
-                
+
                 item {
                     ExposedDropdownMenuBox(
                         expanded = expandedPriority,
@@ -1782,14 +1781,14 @@ fun AddTaskDialog(
                                 .menuAnchor()
                                 .fillMaxWidth()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = expandedPriority,
                             onDismissRequest = { expandedPriority = false }
                         ) {
                             Priority.values().forEach { priority ->
                                 DropdownMenuItem(
-                                    text = { 
+                                    text = {
                                         Text(when(priority) {
                                             Priority.HIGH -> "High"
                                             Priority.MEDIUM -> "Medium"
@@ -1805,12 +1804,12 @@ fun AddTaskDialog(
                         }
                     }
                 }
-                
+
                 item {
                     OutlinedTextField(
-                        value = String.format("%02d:%02d %s", 
-                            if (timePickerState.hour == 0) 12 
-                            else if (timePickerState.hour > 12) timePickerState.hour - 12 
+                        value = String.format("%02d:%02d %s",
+                            if (timePickerState.hour == 0) 12
+                            else if (timePickerState.hour > 12) timePickerState.hour - 12
                             else timePickerState.hour,
                             timePickerState.minute,
                             if (timePickerState.hour < 12) "AM" else "PM"
@@ -1848,9 +1847,9 @@ fun AddTaskDialog(
                             title = title.trim(),
                             description = description.trim(),
                             timeBlock = getTimeBlockFromHour(timePickerState.hour),
-                            time = String.format("%02d:%02d %s", 
-                                if (timePickerState.hour == 0) 12 
-                                else if (timePickerState.hour > 12) timePickerState.hour - 12 
+                            time = String.format("%02d:%02d %s",
+                                if (timePickerState.hour == 0) 12
+                                else if (timePickerState.hour > 12) timePickerState.hour - 12
                                 else timePickerState.hour,
                                 timePickerState.minute,
                                 if (timePickerState.hour < 12) "AM" else "PM"
@@ -1881,7 +1880,7 @@ fun AddTaskDialog(
             }
         }
     )
-    
+
     // Time Picker Dialog
     if (showTimePicker) {
         AlertDialog(
@@ -1920,7 +1919,7 @@ fun EditTaskDialog(
     var expandedCategory by remember { mutableStateOf(false) }
     var expandedPriority by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    
+
     // Parse existing task time
     val timePickerState = rememberTimePickerState(
         initialHour = parseTimeString(task.time).first,
@@ -1949,7 +1948,7 @@ fun EditTaskDialog(
                         singleLine = true
                     )
                 }
-                
+
                 item {
                     OutlinedTextField(
                         value = description,
@@ -1959,7 +1958,7 @@ fun EditTaskDialog(
                         maxLines = 3
                     )
                 }
-                
+
                 item {
                     ExposedDropdownMenuBox(
                         expanded = expandedCategory,
@@ -1975,7 +1974,7 @@ fun EditTaskDialog(
                                 .menuAnchor()
                                 .fillMaxWidth()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = expandedCategory,
                             onDismissRequest = { expandedCategory = false }
@@ -1992,7 +1991,7 @@ fun EditTaskDialog(
                         }
                     }
                 }
-                
+
                 item {
                     ExposedDropdownMenuBox(
                         expanded = expandedPriority,
@@ -2012,14 +2011,14 @@ fun EditTaskDialog(
                                 .menuAnchor()
                                 .fillMaxWidth()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = expandedPriority,
                             onDismissRequest = { expandedPriority = false }
                         ) {
                             Priority.values().forEach { priority ->
                                 DropdownMenuItem(
-                                    text = { 
+                                    text = {
                                         Text(when(priority) {
                                             Priority.HIGH -> "High"
                                             Priority.MEDIUM -> "Medium"
@@ -2035,12 +2034,12 @@ fun EditTaskDialog(
                         }
                     }
                 }
-                
+
                 item {
                     OutlinedTextField(
-                        value = String.format("%02d:%02d %s", 
-                            if (timePickerState.hour == 0) 12 
-                            else if (timePickerState.hour > 12) timePickerState.hour - 12 
+                        value = String.format("%02d:%02d %s",
+                            if (timePickerState.hour == 0) 12
+                            else if (timePickerState.hour > 12) timePickerState.hour - 12
                             else timePickerState.hour,
                             timePickerState.minute,
                             if (timePickerState.hour < 12) "AM" else "PM"
@@ -2079,9 +2078,9 @@ fun EditTaskDialog(
                             category = selectedCategory,
                             priority = selectedPriority,
                             timeBlock = getTimeBlockFromHour(timePickerState.hour),
-                            time = String.format("%02d:%02d %s", 
-                                if (timePickerState.hour == 0) 12 
-                                else if (timePickerState.hour > 12) timePickerState.hour - 12 
+                            time = String.format("%02d:%02d %s",
+                                if (timePickerState.hour == 0) 12
+                                else if (timePickerState.hour > 12) timePickerState.hour - 12
                                 else timePickerState.hour,
                                 timePickerState.minute,
                                 if (timePickerState.hour < 12) "AM" else "PM"
@@ -2101,7 +2100,7 @@ fun EditTaskDialog(
             }
         }
     )
-    
+
     // Time Picker Dialog
     if (showTimePicker) {
         AlertDialog(
