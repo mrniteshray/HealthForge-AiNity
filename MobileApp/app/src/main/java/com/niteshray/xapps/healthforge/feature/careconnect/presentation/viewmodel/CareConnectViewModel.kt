@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.niteshray.xapps.healthforge.feature.careconnect.data.models.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,10 +18,12 @@ data class CareConnectUiState(
     val guardians: List<Guardian> = emptyList(),
     val guardees: List<Guardee> = emptyList(),
     val pendingRequests: List<GuardianRequest> = emptyList(),
+    val outgoingRequests: List<GuardianRequest> = emptyList(), // Requests sent by current user
     val stats: CareConnectStats = CareConnectStats(),
     val errorMessage: String? = null,
     val showAddGuardianDialog: Boolean = false,
-    val selectedTab: CareConnectTab = CareConnectTab.OVERVIEW
+    val selectedTab: CareConnectTab = CareConnectTab.OVERVIEW,
+    val currentUserId: String? = null
 )
 
 enum class CareConnectTab(val displayName: String) {
@@ -42,150 +45,243 @@ class CareConnectViewModel @Inject constructor(
     private val currentUserId get() = firebaseAuth.currentUser?.uid
     private val currentUserEmail get() = firebaseAuth.currentUser?.email
 
+    // Real-time listeners
+    private var guardiansListener: ListenerRegistration? = null
+    private var guardeesListener: ListenerRegistration? = null
+    private var pendingRequestsListener: ListenerRegistration? = null
+    private var outgoingRequestsListener: ListenerRegistration? = null
+
     init {
-        loadData()
+        setupRealtimeListeners()
     }
 
-    private fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            
-            try {
-                currentUserId?.let { userId ->
-                    loadGuardians(userId)
-                    loadGuardees(userId)
-                    loadPendingRequests(userId)
+    private fun setupRealtimeListeners() {
+        currentUserId?.let { userId ->
+            currentUserEmail?.let { email ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = true, 
+                    errorMessage = null,
+                    currentUserId = userId
+                )
+                setupGuardiansListener(userId)
+                setupGuardeesListener(userId)
+                setupPendingRequestsListener(email)
+                setupOutgoingRequestsListener(userId)
+            }
+        }
+    }
+
+
+    // Setup real-time listener for guardians (people who can monitor current user)
+    private fun setupGuardiansListener(userId: String) {
+        guardiansListener = firestore
+            .collection("guardianConnections")
+            .whereEqualTo("guardeeId", userId)
+            .whereEqualTo("status", "ACCEPTED")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message ?: "Failed to load guardians"
+                    )
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    viewModelScope.launch {
+                        try {
+                            val guardians = snapshot.documents.mapNotNull { doc ->
+                                val guardianId = doc.getString("guardianId") ?: return@mapNotNull null
+                                val guardianData = firestore.collection("users").document(guardianId).get().await()
+                                
+                                if (guardianData.exists()) {
+                                    Guardian(
+                                        id = guardianId,
+                                        name = guardianData.getString("name") ?: "",
+                                        email = guardianData.getString("email") ?: "",
+                                        phoneNumber = guardianData.getString("phoneNumber") ?: "",
+                                        relationship = GuardianRelationship.valueOf(
+                                            doc.getString("relationship") ?: "OTHER"
+                                        ),
+                                        permissions = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
+                                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                                        } ?: emptyList(),
+                                        isActive = doc.getBoolean("isActive") ?: true,
+                                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                                        lastActiveAt = doc.getLong("lastActiveAt")
+                                    )
+                                } else null
+                            }
+
+                            _uiState.value = _uiState.value.copy(
+                                guardians = guardians,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                            updateStats()
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(
+                                errorMessage = e.message ?: "Failed to process guardians data"
+                            )
+                        }
+                    }
+                }
+            }
+    }
+
+    // Setup real-time listener for guardees (people current user is monitoring)  
+    private fun setupGuardeesListener(userId: String) {
+        guardeesListener = firestore
+            .collection("guardianConnections")
+            .whereEqualTo("guardianId", userId)
+            .whereEqualTo("status", "ACCEPTED")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message ?: "Failed to load guardees"
+                    )
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    viewModelScope.launch {
+                        try {
+                            val guardees = snapshot.documents.mapNotNull { doc ->
+                                val guardeeId = doc.getString("guardeeId") ?: return@mapNotNull null
+                                val guardeeData = firestore.collection("users").document(guardeeId).get().await()
+                                
+                                if (guardeeData.exists()) {
+                                    Guardee(
+                                        id = guardeeId,
+                                        name = guardeeData.getString("name") ?: "",
+                                        email = guardeeData.getString("email") ?: "",
+                                        phoneNumber = guardeeData.getString("phoneNumber") ?: "",
+                                        relationship = GuardianRelationship.valueOf(
+                                            doc.getString("relationship") ?: "OTHER"
+                                        ),
+                                        permissionsGranted = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
+                                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                                        } ?: emptyList(),
+                                        isActive = doc.getBoolean("isActive") ?: true,
+                                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                                        lastActiveAt = doc.getLong("lastActiveAt")
+                                    )
+                                } else null
+                            }
+
+                            _uiState.value = _uiState.value.copy(
+                                guardees = guardees,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                            updateStats()
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(
+                                errorMessage = e.message ?: "Failed to process guardees data"
+                            )
+                        }
+                    }
+                }
+            }
+    }
+
+    // Setup real-time listener for pending guardian requests
+    private fun setupPendingRequestsListener(userEmail: String) {
+        pendingRequestsListener = firestore
+            .collection("guardianRequests")
+            .whereEqualTo("toUserEmail", userEmail)
+            .whereEqualTo("status", RequestStatus.PENDING.name)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message ?: "Failed to load pending requests"
+                    )
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val pendingRequests = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            GuardianRequest(
+                                id = doc.id,
+                                fromUserId = doc.getString("fromUserId") ?: "",
+                                toUserId = doc.getString("toUserId") ?: "",
+                                fromUserName = doc.getString("fromUserName") ?: "",
+                                fromUserEmail = doc.getString("fromUserEmail") ?: "",
+                                toUserEmail = doc.getString("toUserEmail") ?: "",
+                                requestedPermissions = (doc.get("requestedPermissions") as? List<*>)?.mapNotNull { permission ->
+                                    try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                                } ?: emptyList(),
+                                relationship = GuardianRelationship.valueOf(
+                                    doc.getString("relationship") ?: "OTHER"
+                                ),
+                                message = doc.getString("message") ?: "",
+                                status = RequestStatus.valueOf(doc.getString("status") ?: "PENDING"),
+                                createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                                respondedAt = doc.getLong("respondedAt")
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        pendingRequests = pendingRequests,
+                        errorMessage = null
+                    )
                     updateStats()
                 }
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Failed to load data"
-                )
             }
-        }
     }
 
-    // Load guardians (people who can monitor current user)
-    private suspend fun loadGuardians(userId: String) {
-        try {
-            val guardianConnections = firestore
-                .collection("guardianConnections")
-                .whereEqualTo("guardeeId", userId)
-                .whereEqualTo("status", "ACCEPTED")
-                .get()
-                .await()
-
-            val guardians = guardianConnections.documents.mapNotNull { doc ->
-                val guardianId = doc.getString("guardianId") ?: return@mapNotNull null
-                val guardianData = firestore.collection("users").document(guardianId).get().await()
-                
-                if (guardianData.exists()) {
-                    Guardian(
-                        id = guardianId,
-                        name = guardianData.getString("name") ?: "",
-                        email = guardianData.getString("email") ?: "",
-                        phoneNumber = guardianData.getString("phoneNumber") ?: "",
-                        relationship = GuardianRelationship.valueOf(
-                            doc.getString("relationship") ?: "OTHER"
-                        ),
-                        permissions = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
-                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
-                        } ?: emptyList(),
-                        isActive = doc.getBoolean("isActive") ?: true,
-                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                        lastActiveAt = doc.getLong("lastActiveAt")
+    // Setup real-time listener for outgoing requests (requests sent by current user)
+    private fun setupOutgoingRequestsListener(userId: String) {
+        outgoingRequestsListener = firestore
+            .collection("guardianRequests")
+            .whereEqualTo("fromUserId", userId)
+            .whereEqualTo("status", RequestStatus.PENDING.name)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message ?: "Failed to load outgoing requests"
                     )
-                } else null
-            }
+                    return@addSnapshotListener
+                }
 
-            _uiState.value = _uiState.value.copy(guardians = guardians)
-        } catch (e: Exception) {
-            throw Exception("Failed to load guardians: ${e.message}")
-        }
-    }
+                if (snapshot != null) {
+                    val outgoingRequests = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            GuardianRequest(
+                                id = doc.id,
+                                fromUserId = doc.getString("fromUserId") ?: "",
+                                toUserId = doc.getString("toUserId") ?: "",
+                                fromUserName = doc.getString("fromUserName") ?: "",
+                                fromUserEmail = doc.getString("fromUserEmail") ?: "",
+                                toUserEmail = doc.getString("toUserEmail") ?: "",
+                                requestedPermissions = (doc.get("requestedPermissions") as? List<*>)?.mapNotNull { permission ->
+                                    try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
+                                } ?: emptyList(),
+                                relationship = GuardianRelationship.valueOf(
+                                    doc.getString("relationship") ?: "OTHER"
+                                ),
+                                message = doc.getString("message") ?: "",
+                                status = RequestStatus.valueOf(doc.getString("status") ?: "PENDING"),
+                                createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                                respondedAt = doc.getLong("respondedAt")
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
 
-    // Load guardees (people current user is monitoring)  
-    private suspend fun loadGuardees(userId: String) {
-        try {
-            val guardeeConnections = firestore
-                .collection("guardianConnections")
-                .whereEqualTo("guardianId", userId)
-                .whereEqualTo("status", "ACCEPTED")
-                .get()
-                .await()
-
-            val guardees = guardeeConnections.documents.mapNotNull { doc ->
-                val guardeeId = doc.getString("guardeeId") ?: return@mapNotNull null
-                val guardeeData = firestore.collection("users").document(guardeeId).get().await()
-                
-                if (guardeeData.exists()) {
-                    Guardee(
-                        id = guardeeId,
-                        name = guardeeData.getString("name") ?: "",
-                        email = guardeeData.getString("email") ?: "",
-                        phoneNumber = guardeeData.getString("phoneNumber") ?: "",
-                        relationship = GuardianRelationship.valueOf(
-                            doc.getString("relationship") ?: "OTHER"
-                        ),
-                        permissionsGranted = (doc.get("permissions") as? List<*>)?.mapNotNull { permission ->
-                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
-                        } ?: emptyList(),
-                        isActive = doc.getBoolean("isActive") ?: true,
-                        addedAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                        lastActiveAt = doc.getLong("lastActiveAt")
+                    _uiState.value = _uiState.value.copy(
+                        outgoingRequests = outgoingRequests,
+                        errorMessage = null
                     )
-                } else null
-            }
-
-            _uiState.value = _uiState.value.copy(guardees = guardees)
-        } catch (e: Exception) {
-            throw Exception("Failed to load guardees: ${e.message}")
-        }
-    }
-
-    // Load pending guardian requests
-    private suspend fun loadPendingRequests(userId: String) {
-        try {
-            val currentUserEmail = currentUserEmail ?: return
-            val requests = firestore
-                .collection("guardianRequests")
-                .whereEqualTo("toUserEmail", currentUserEmail)
-                .whereEqualTo("status", RequestStatus.PENDING.name)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .get()
-                .await()
-
-            val pendingRequests = requests.documents.mapNotNull { doc ->
-                try {
-                    GuardianRequest(
-                        id = doc.id,
-                        fromUserId = doc.getString("fromUserId") ?: "",
-                        toUserId = doc.getString("toUserId") ?: "",
-                        fromUserName = doc.getString("fromUserName") ?: "",
-                        fromUserEmail = doc.getString("fromUserEmail") ?: "",
-                        toUserEmail = doc.getString("toUserEmail") ?: "",
-                        requestedPermissions = (doc.get("requestedPermissions") as? List<*>)?.mapNotNull { permission ->
-                            try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
-                        } ?: emptyList(),
-                        relationship = GuardianRelationship.valueOf(
-                            doc.getString("relationship") ?: "OTHER"
-                        ),
-                        message = doc.getString("message") ?: "",
-                        status = RequestStatus.valueOf(doc.getString("status") ?: "PENDING"),
-                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                        respondedAt = doc.getLong("respondedAt")
-                    )
-                } catch (e: Exception) {
-                    null
+                    updateStats()
                 }
             }
-
-            _uiState.value = _uiState.value.copy(pendingRequests = pendingRequests)
-        } catch (e: Exception) {
-            throw Exception("Failed to load pending requests: ${e.message}")
-        }
     }
 
     // Update stats based on loaded data
@@ -243,8 +339,7 @@ class CareConnectViewModel @Inject constructor(
                     showAddGuardianDialog = false
                 )
                 
-                // Reload data to show updated state
-                loadData()
+                // Real-time listeners will automatically update the data
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -410,8 +505,6 @@ class CareConnectViewModel @Inject constructor(
                     )
                     .await()
 
-                // Reload data
-                loadData()
                 _uiState.value = _uiState.value.copy(isLoading = false)
 
             } catch (e: Exception) {
@@ -439,9 +532,6 @@ class CareConnectViewModel @Inject constructor(
                     )
                     .await()
 
-                // Reload data
-                loadData()
-
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     errorMessage = e.message ?: "Failed to reject request"
@@ -468,7 +558,14 @@ class CareConnectViewModel @Inject constructor(
     }
 
     fun refreshData() {
-        loadData()
+        // Remove existing listeners and setup new ones
+        guardiansListener?.remove()
+        guardeesListener?.remove()
+        pendingRequestsListener?.remove()
+        outgoingRequestsListener?.remove()
+        
+        // Re-setup listeners
+        setupRealtimeListeners()
     }
 
     // Remove guardian connection
@@ -489,8 +586,7 @@ class CareConnectViewModel @Inject constructor(
                     doc.reference.delete().await()
                 }
 
-                // Reload data
-                loadData()
+                // Real-time listeners will automatically update the data
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -518,8 +614,7 @@ class CareConnectViewModel @Inject constructor(
                     doc.reference.delete().await()
                 }
 
-                // Reload data
-                loadData()
+                // Real-time listeners will automatically update the data
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -535,4 +630,12 @@ class CareConnectViewModel @Inject constructor(
         val email: String,
         val name: String
     )
+
+    override fun onCleared() {
+        super.onCleared()
+        guardiansListener?.remove()
+        guardeesListener?.remove()
+        pendingRequestsListener?.remove()
+        outgoingRequestsListener?.remove()
+    }
 }

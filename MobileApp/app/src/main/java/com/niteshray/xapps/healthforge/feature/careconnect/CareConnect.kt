@@ -114,7 +114,7 @@ fun CareConnectScreen(
                         )
                     }
                     
-                    if (uiState.guardians.isEmpty()) {
+                    if (uiState.guardians.isEmpty() && uiState.outgoingRequests.isEmpty()) {
                         item {
                             EmptyStateCard(
                                 title = "No Guardians Yet",
@@ -123,6 +123,7 @@ fun CareConnectScreen(
                             )
                         }
                     } else {
+                        // Show accepted guardians
                         items(uiState.guardians) { guardian ->
                             SimplePersonItem(
                                 name = guardian.name,
@@ -131,6 +132,19 @@ fun CareConnectScreen(
                                 icon = guardian.relationship.icon,
                                 isGuardian = true,
                                 onRemove = { viewModel.removeGuardian(guardian.id) }
+                            )
+                        }
+                        
+                        // Show pending outgoing requests (people current user asked to be their guardian)
+                        items(uiState.outgoingRequests) { request ->
+                            SimplePersonItem(
+                                name = request.toUserEmail.substringBefore("@"), // Use part before @ as display name
+                                email = request.toUserEmail,
+                                relationship = request.relationship.displayName,
+                                icon = request.relationship.icon,
+                                isGuardian = true,
+                                status = "Requested",
+                                onRemove = { /* TODO: Add cancel request functionality */ }
                             )
                         }
                     }
@@ -343,6 +357,7 @@ private fun SimplePersonItem(
     relationship: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isGuardian: Boolean,
+    status: String? = null, // "Requested" for pending requests
     onRemove: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -380,12 +395,31 @@ private fun SimplePersonItem(
         
         // Info
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (status != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiary,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = status,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
             Text(
                 text = relationship,
                 style = MaterialTheme.typography.bodyMedium,
