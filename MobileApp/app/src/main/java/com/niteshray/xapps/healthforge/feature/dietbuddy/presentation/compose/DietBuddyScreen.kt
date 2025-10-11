@@ -365,7 +365,7 @@ private fun CleanDietPlanSection(
         ) {
             Column {
                 Text(
-                    text = "Your Diet Plan",
+                    text = "Today's Diet Plan",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground
