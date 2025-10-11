@@ -60,140 +60,141 @@ fun CareConnectScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-        // Simple Header
-        SimpleHeader(
-            onAddGuardian = { viewModel.showAddGuardianDialog() }
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Stats Row
-        SimpleStatsRow(
-            guardianCount = uiState.guardians.size,
-            guardeeCount = uiState.guardees.size
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Show loading or error states
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            
-            uiState.errorMessage != null -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Error",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row {
-                            TextButton(
-                                onClick = { viewModel.clearError() }
-                            ) {
-                                Text("Dismiss")
-                            }
-                            TextButton(
-                                onClick = { viewModel.refreshData() }
-                            ) {
-                                Text("Retry")
-                            }
-                        }
-                    }
-                }
-            }
-            
-            else -> {
-                // Content
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Guardians Section
-                    item {
-                        SectionTitle(
-                            title = "My Guardians",
-                            subtitle = "People monitoring your health"
-                        )
-                    }
-                    
-                    if (uiState.guardians.isEmpty()) {
-                        item {
-                            EmptyStateCard(
-                                title = "No Guardians Yet",
-                                message = "Add people who can monitor your health and receive updates.",
-                                icon = Icons.Filled.Security
-                            )
-                        }
-                    } else {
-                        // Show only accepted guardians
-                        items(uiState.guardians) { guardian ->
-                            SimplePersonItem(
-                                name = guardian.name,
-                                email = guardian.email,
-                                relationship = guardian.relationship.displayName,
-                                icon = guardian.relationship.icon,
-                                isGuardian = true,
-                                onRemove = { viewModel.removeGuardian(guardian.id) }
-                            )
-                        }
-                    }
-                    
-                    // Guardees Section  
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SectionTitle(
-                            title = "People I'm Guarding", 
-                            subtitle = "People you monitor"
-                        )
-                    }
-                    
-                    if (uiState.guardees.isEmpty()) {
-                        item {
-                            EmptyStateCard(
-                                title = "Not Guarding Anyone",
-                                message = "You haven't been added as a guardian yet. Wait for invitations from others.",
-                                icon = Icons.Filled.People
-                            )
-                        }
-                    } else {
-                        items(uiState.guardees) { guardee ->
-                            SimplePersonItem(
-                                name = guardee.name,
-                                email = guardee.email,
-                                relationship = guardee.relationship.displayName,
-                                icon = guardee.relationship.icon,
-                                isGuardian = false,
-                                onRemove = { viewModel.removeGuardee(guardee.id) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Add Guardian Dialog
-        if (uiState.showAddGuardianDialog) {
-            AddGuardianDialog(
-                onDismiss = { viewModel.hideAddGuardianDialog() },
-                onAdd = { email, relationship, message ->
-                    viewModel.addGuardian(email, relationship, message)
-                }
+            // Simple Header
+            SimpleHeader(
+                onAddGuardian = { viewModel.showAddGuardianDialog() }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Stats Row
+            SimpleStatsRow(
+                guardianCount = uiState.guardians.size,
+                guardeeCount = uiState.guardees.size
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Show loading or error states
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                uiState.errorMessage != null -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Error",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row {
+                                TextButton(
+                                    onClick = { viewModel.clearError() }
+                                ) {
+                                    Text("Dismiss")
+                                }
+                                TextButton(
+                                    onClick = { viewModel.refreshData() }
+                                ) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                else -> {
+                    // Content
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Guardians Section
+                        item {
+                            SectionTitle(
+                                title = "My Guardians",
+                                subtitle = "People monitoring your health"
+                            )
+                        }
+
+                        if (uiState.guardians.isEmpty()) {
+                            item {
+                                EmptyStateCard(
+                                    title = "No Guardians Yet",
+                                    message = "Add people who can monitor your health and receive updates.",
+                                    icon = Icons.Filled.Security
+                                )
+                            }
+                        } else {
+                            // Show only accepted guardians
+                            items(uiState.guardians) { guardian ->
+                                SimplePersonItem(
+                                    name = guardian.name,
+                                    email = guardian.email,
+                                    relationship = guardian.relationship.displayName,
+                                    icon = guardian.relationship.icon,
+                                    isGuardian = true,
+                                    onRemove = { viewModel.removeGuardian(guardian.id) }
+                                )
+                            }
+                        }
+
+                        // Guardees Section
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            SectionTitle(
+                                title = "People I'm Guarding",
+                                subtitle = "People you monitor"
+                            )
+                        }
+
+                        if (uiState.guardees.isEmpty()) {
+                            item {
+                                EmptyStateCard(
+                                    title = "Not Guarding Anyone",
+                                    message = "You haven't been added as a guardian yet. Wait for invitations from others.",
+                                    icon = Icons.Filled.People
+                                )
+                            }
+                        } else {
+                            items(uiState.guardees) { guardee ->
+                                SimplePersonItem(
+                                    name = guardee.name,
+                                    email = guardee.email,
+                                    relationship = guardee.relationship.displayName,
+                                    icon = guardee.relationship.icon,
+                                    isGuardian = false,
+                                    onRemove = { viewModel.removeGuardee(guardee.id) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add Guardian Dialog
+            if (uiState.showAddGuardianDialog) {
+                AddGuardianDialog(
+                    onDismiss = { viewModel.hideAddGuardianDialog() },
+                    onAdd = { email, relationship, message ->
+                        viewModel.addGuardian(email, relationship, message)
+                    }
+                )
+            }
         }
     }
 }
@@ -264,7 +265,7 @@ private fun SimpleHeader(
 }
 
 
-@Composable 
+@Composable
 private fun SimpleStatsRow(
     guardianCount: Int,
     guardeeCount: Int
@@ -280,9 +281,9 @@ private fun SimpleStatsRow(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
-        
+
         StatBox(
-            title = "Guardees", 
+            title = "Guardees",
             count = guardeeCount.toString(),
             icon = Icons.Filled.People,
             color = MaterialTheme.colorScheme.secondary,
@@ -316,7 +317,7 @@ private fun StatBox(
                 modifier = Modifier.size(24.dp),
                 tint = color
             )
-            
+
             Column {
                 Text(
                     text = count,
@@ -357,7 +358,7 @@ private fun SectionTitle(
 @Composable
 private fun SimplePersonItem(
     name: String,
-    email: String, 
+    email: String,
     relationship: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isGuardian: Boolean,
@@ -394,9 +395,9 @@ private fun SimplePersonItem(
                     .padding(12.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         // Info
         Column(modifier = Modifier.weight(1f)) {
             Row(
@@ -435,7 +436,7 @@ private fun SimplePersonItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
+
         // Remove button
         IconButton(
             onClick = onRemove,
@@ -727,7 +728,7 @@ private fun QuickActionsSection() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -824,7 +825,7 @@ private fun SectionHeader(
                 )
             }
         }
-        
+
         if (onViewAll != null) {
             TextButton(onClick = onViewAll) {
                 Text(
@@ -864,7 +865,7 @@ private fun GuardianCard(guardian: Guardian) {
             // Profile Picture
             Surface(
                 shape = CircleShape,
-                color = guardian.relationship.icon.let { 
+                color = guardian.relationship.icon.let {
                     when (guardian.relationship) {
                         GuardianRelationship.DOCTOR -> MaterialTheme.colorScheme.primary
                         GuardianRelationship.PARENT -> MaterialTheme.colorScheme.secondary
@@ -907,7 +908,7 @@ private fun GuardianCard(guardian: Guardian) {
                     Icon(
                         imageVector = Icons.Filled.Circle,
                         contentDescription = null,
-                        tint = if (guardian.lastActiveAt != null && 
+                        tint = if (guardian.lastActiveAt != null &&
                                   System.currentTimeMillis() - guardian.lastActiveAt < 3600000) {
                             Color(0xFF4CAF50)
                         } else {
@@ -917,7 +918,7 @@ private fun GuardianCard(guardian: Guardian) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (guardian.lastActiveAt != null && 
+                        text = if (guardian.lastActiveAt != null &&
                                    System.currentTimeMillis() - guardian.lastActiveAt < 3600000) {
                             "Active"
                         } else {
@@ -953,7 +954,7 @@ private fun GuardeeCard(guardee: Guardee) {
             // Profile Picture
             Surface(
                 shape = CircleShape,
-                color = guardee.relationship.icon.let { 
+                color = guardee.relationship.icon.let {
                     when (guardee.relationship) {
                         GuardianRelationship.CHILD -> MaterialTheme.colorScheme.primary
                         GuardianRelationship.FAMILY -> MaterialTheme.colorScheme.tertiary
@@ -1259,7 +1260,7 @@ private fun GuardianDetailCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -1280,7 +1281,7 @@ private fun GuardianDetailCard(
                     Icon(
                         imageVector = Icons.Filled.Circle,
                         contentDescription = null,
-                        tint = if (guardian.lastActiveAt != null && 
+                        tint = if (guardian.lastActiveAt != null &&
                                   System.currentTimeMillis() - guardian.lastActiveAt < 3600000) {
                             Color(0xFF4CAF50)
                         } else {
@@ -1307,7 +1308,7 @@ private fun GuardianDetailCard(
         AlertDialog(
             onDismissRequest = { showRemoveDialog = false },
             title = { Text("Remove Guardian") },
-            text = { 
+            text = {
                 Text("Are you sure you want to remove ${guardian.name} as your guardian? They will no longer have access to your health data.")
             },
             confirmButton = {
@@ -1408,7 +1409,7 @@ private fun GuardeeDetailCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -1423,7 +1424,7 @@ private fun GuardeeDetailCard(
         AlertDialog(
             onDismissRequest = { showRemoveDialog = false },
             title = { Text("Stop Guarding") },
-            text = { 
+            text = {
                 Text("Are you sure you want to stop being ${guardee.name}'s guardian? You will no longer have access to their health data.")
             },
             confirmButton = {
@@ -1612,7 +1613,7 @@ private fun EmptyState(
 }
 
 @Composable
-private fun LoadingContent() {
+fun LoadingContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -1624,7 +1625,7 @@ private fun LoadingContent() {
 }
 
 @Composable
-private fun ErrorContent(
+fun ErrorContent(
     message: String,
     onRetry: () -> Unit,
     onDismiss: () -> Unit
@@ -1706,18 +1707,18 @@ private fun EmptyStateCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.size(48.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -1728,10 +1729,10 @@ private fun EmptyStateCard(
     }
 }
 
-private fun formatTimestamp(timestamp: Long): String {
+ fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
-    
+
     return when {
         diff < 60000 -> "Just now"
         diff < 3600000 -> "${diff / 60000}m ago"

@@ -252,7 +252,7 @@ class CareConnectViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, showAddGuardianDialog = false)
                 
                 val currentUserId = currentUserId ?: throw Exception("User not authenticated")
                 val currentUserEmail = currentUserEmail ?: throw Exception("User email not found")
