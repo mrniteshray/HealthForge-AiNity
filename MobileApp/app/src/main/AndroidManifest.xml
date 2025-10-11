@@ -16,9 +16,8 @@
     <!-- For Android 12+ exact alarm permission -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
-    <!-- Foreground service permission for TTS -->
+    <!-- Foreground service permission -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:name=".HealthForgeApp"

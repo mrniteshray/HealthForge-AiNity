@@ -151,6 +151,18 @@ fun HealthcareDashboard(
             )
         }
 
+            // Debug Section for testing notifications
+            item {
+                DebugTestSection(
+                    onTestNotification = {
+                        viewModel.testNotification(context)
+                    },
+                    onScheduleTestReminder = {
+                        viewModel.scheduleTestReminder(context)
+                    }
+                )
+            }
+
         // Quick Actions Section
         item {
             QuickActionsSection(
@@ -1599,7 +1611,7 @@ fun DebugTestSection(
             }
             
             Text(
-                text = "Use these buttons to test notifications and TTS. Check logs for debugging info.",
+                text = "Use these buttons to test notifications. Check logs for debugging info.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 8.dp)
