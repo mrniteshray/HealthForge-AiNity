@@ -151,17 +151,17 @@ fun HealthcareDashboard(
             )
         }
 
-            // Debug Section for testing notifications
-            item {
-                DebugTestSection(
-                    onTestNotification = {
-                        viewModel.testNotification(context)
-                    },
-                    onScheduleTestReminder = {
-                        viewModel.scheduleTestReminder(context)
-                    }
-                )
-            }
+            // Debug Section for testing notifications and TTS
+//            item {
+//                DebugTestSection(
+//                    onTestNotification = {
+//                        viewModel.testNotificationAndTTS(context)
+//                    },
+//                    onScheduleTestReminder = {
+//                        viewModel.scheduleTestReminder(context)
+//                    }
+//                )
+//            }
 
         // Quick Actions Section
         item {
@@ -198,7 +198,7 @@ fun HealthcareDashboard(
                         showEditTaskDialog = true
                     },
                     onTaskDelete = { taskId ->
-                        viewModel.deleteTask(taskId)
+                        viewModel.deleteTask(taskId,context)
                     }
                 )
             }
@@ -247,7 +247,7 @@ fun HealthcareDashboard(
                         icon = Icons.Filled.Medication,
                         priority = Priority.HIGH
                     )
-                    viewModel.addTask(task)
+                    viewModel.addTask(task,context)
                 }
                 showAddMedicationDialog = false
             }
@@ -259,7 +259,7 @@ fun HealthcareDashboard(
         AddTaskDialog(
             onDismiss = { showAddTaskDialog = false },
             onConfirm = { newTask ->
-                viewModel.addTask(newTask)
+                viewModel.addTask(newTask,context)
             }
         )
     }
@@ -273,7 +273,7 @@ fun HealthcareDashboard(
                 taskToEdit = null
             },
             onConfirm = { updatedTask ->
-                viewModel.updateTask(updatedTask)
+                viewModel.updateTask(updatedTask,context)
                 showEditTaskDialog = false
                 taskToEdit = null
             }
@@ -1611,7 +1611,7 @@ fun DebugTestSection(
             }
             
             Text(
-                text = "Use these buttons to test notifications. Check logs for debugging info.",
+                text = "Use these buttons to test notifications and TTS. Check logs for debugging info.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 8.dp)

@@ -581,8 +581,8 @@ class NewHomeViewModel @Inject constructor(
     }
 
     // Test methods for backward compatibility
-    fun testNotification(context: Context) {
-        Log.d(TAG, "Testing notification system")
+    fun testNotificationAndTTS(context: Context) {
+        Log.d(TAG, "Testing notification and TTS system")
 
         try {
             val intent = Intent(context, TaskReminderReceiver::class.java).apply {
@@ -594,10 +594,10 @@ class NewHomeViewModel @Inject constructor(
             val receiver = TaskReminderReceiver()
             receiver.onReceive(context, intent)
 
-            Log.d(TAG, "Test notification triggered successfully")
+            Log.d(TAG, "Test notification and TTS triggered successfully")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to test notification", e)
+            Log.e(TAG, "Failed to test notification and TTS", e)
         }
     }
 

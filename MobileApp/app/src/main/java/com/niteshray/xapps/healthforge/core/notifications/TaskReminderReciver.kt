@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.niteshray.xapps.healthforge.MainActivity
 import com.niteshray.xapps.healthforge.R
+import com.niteshray.xapps.healthforge.feature.Assistant.presentation.utils.PermissionUtils
 
 class TaskReminderReceiver : BroadcastReceiver() {
 
@@ -35,9 +36,13 @@ class TaskReminderReceiver : BroadcastReceiver() {
         Log.d(TAG, "Description: '$taskDescription'")
 
         try {
-            // Show enhanced notification
+            // Show enhanced notification first
             showNotification(context, taskId, taskTitle, taskDescription)
             Log.d(TAG, "Enhanced notification shown successfully")
+
+            // Then speak the interactive task message using TTS
+            speakTaskTitle(context, taskTitle)
+            Log.d(TAG, "Enhanced TTS service started successfully")
             
         } catch (e: Exception) {
             Log.e(TAG, "Error in enhanced onReceive", e)
@@ -51,6 +56,12 @@ class TaskReminderReceiver : BroadcastReceiver() {
         descriptions: String
     ) {
         Log.d(TAG, "Creating enhanced notification for task: $taskId")
+        
+        // Check if notification permission is granted
+        if (!PermissionUtils.hasNotificationPermission(context)) {
+            Log.w(TAG, "Notification permission not granted, cannot show notification")
+            return
+        }
         
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -279,4 +290,150 @@ class TaskReminderReceiver : BroadcastReceiver() {
         val actionHint: String,
         val color: Int
     )
+
+    private fun speakTaskTitle(context: Context, text: String) {
+        Log.d(TAG, "Starting enhanced TTS service for text: '$text'")
+        
+        try {
+            // Generate interactive message based on task content
+            val interactiveMessage = generateInteractiveMessage(text)
+            
+            // Use a service to handle TTS to avoid lifecycle issues
+            val ttsIntent = Intent(context, TTSService::class.java).apply {
+                putExtra("TEXT_TO_SPEAK", interactiveMessage)
+                putExtra("TASK_TITLE", text) // Original title for logging
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(ttsIntent)
+                Log.d(TAG, "Started enhanced TTS foreground service")
+            } else {
+                context.startService(ttsIntent)
+                Log.d(TAG, "Started enhanced TTS service")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start enhanced TTS service", e)
+        }
+    }
+
+    private fun generateInteractiveMessage(taskTitle: String): String {
+        return when {
+            // Medicine/Medication reminders
+            taskTitle.contains("medicine", ignoreCase = true) || 
+            taskTitle.contains("medication", ignoreCase = true) ||
+            taskTitle.contains("pill", ignoreCase = true) ||
+            taskTitle.contains("tablet", ignoreCase = true) ||
+            taskTitle.contains("take", ignoreCase = true) -> {
+                val medicineName = extractMedicineName(taskTitle)
+                "Hello User! It's your medicine time. Please take your $medicineName medicine now. Don't forget to have it with water if required. Stay healthy!"
+            }
+            
+            // Exercise reminders
+            taskTitle.contains("exercise", ignoreCase = true) ||
+            taskTitle.contains("workout", ignoreCase = true) ||
+            taskTitle.contains("walk", ignoreCase = true) ||
+            taskTitle.contains("run", ignoreCase = true) ||
+            taskTitle.contains("gym", ignoreCase = true) -> {
+                val exerciseType = extractExerciseType(taskTitle)
+                "Hey User! Time to get your body moving. It's time for your $exerciseType. Remember, a healthy body leads to a healthy mind. Let's do this!"
+            }
+            
+            // Food/Diet reminders
+            taskTitle.contains("eat", ignoreCase = true) ||
+            taskTitle.contains("meal", ignoreCase = true) ||
+            taskTitle.contains("food", ignoreCase = true) ||
+            taskTitle.contains("breakfast", ignoreCase = true) ||
+            taskTitle.contains("lunch", ignoreCase = true) ||
+            taskTitle.contains("dinner", ignoreCase = true) -> {
+                val mealType = extractMealType(taskTitle)
+                "Hello! It's time for your $mealType. Remember to eat nutritious food and stay hydrated. Your body deserves the best fuel!"
+            }
+            
+            // Water reminders
+            taskTitle.contains("water", ignoreCase = true) ||
+            taskTitle.contains("drink", ignoreCase = true) ||
+            taskTitle.contains("hydrate", ignoreCase = true) -> {
+                "Hey! Time to hydrate yourself. Please drink a glass of water now. Staying hydrated is essential for your health. Cheers to good health!"
+            }
+            
+            // Monitoring/Health check reminders
+            taskTitle.contains("check", ignoreCase = true) ||
+            taskTitle.contains("monitor", ignoreCase = true) ||
+            taskTitle.contains("measure", ignoreCase = true) ||
+            taskTitle.contains("pressure", ignoreCase = true) ||
+            taskTitle.contains("sugar", ignoreCase = true) ||
+            taskTitle.contains("glucose", ignoreCase = true) -> {
+                val checkType = extractMonitoringType(taskTitle)
+                "Hello! It's time for your health monitoring. Please check your $checkType now and record the readings. Regular monitoring helps maintain good health!"
+            }
+            
+            // Sleep/Rest reminders
+            taskTitle.contains("sleep", ignoreCase = true) ||
+            taskTitle.contains("rest", ignoreCase = true) ||
+            taskTitle.contains("bed", ignoreCase = true) -> {
+                "Hi! It's time to rest and recharge. Good sleep is essential for your recovery and health. Please prepare for a restful sleep. Sweet dreams!"
+            }
+            
+            // Meditation/Relaxation reminders
+            taskTitle.contains("meditation", ignoreCase = true) ||
+            taskTitle.contains("relax", ignoreCase = true) ||
+            taskTitle.contains("breathe", ignoreCase = true) -> {
+                "Hello! Time to calm your mind and relax. Take a few deep breaths and center yourself. Your mental health is just as important as your physical health!"
+            }
+            
+            // Doctor appointment reminders
+            taskTitle.contains("doctor", ignoreCase = true) ||
+            taskTitle.contains("appointment", ignoreCase = true) ||
+            taskTitle.contains("visit", ignoreCase = true) -> {
+                "Hello! You have a medical appointment coming up. Please prepare and don't forget to bring your medical documents. Regular checkups are important for your health!"
+            }
+            
+            // General health reminders
+            else -> {
+                "Hello! This is your health reminder for: $taskTitle. Please take care of this important task for your wellbeing. Your health is your wealth!"
+            }
+        }
+    }
+
+    private fun extractMedicineName(title: String): String {
+        // Try to extract medicine name from title
+        val keywords = listOf("take", "medicine", "medication", "pill", "tablet")
+        var cleanTitle = title
+        
+        keywords.forEach { keyword ->
+            cleanTitle = cleanTitle.replace(keyword, "", ignoreCase = true)
+        }
+        
+        return cleanTitle.trim().ifEmpty { "prescribed" }
+    }
+
+    private fun extractExerciseType(title: String): String {
+        return when {
+            title.contains("walk", ignoreCase = true) -> "walk"
+            title.contains("run", ignoreCase = true) -> "run" 
+            title.contains("gym", ignoreCase = true) -> "gym workout"
+            title.contains("yoga", ignoreCase = true) -> "yoga session"
+            else -> "exercise session"
+        }
+    }
+
+    private fun extractMealType(title: String): String {
+        return when {
+            title.contains("breakfast", ignoreCase = true) -> "breakfast"
+            title.contains("lunch", ignoreCase = true) -> "lunch"
+            title.contains("dinner", ignoreCase = true) -> "dinner"
+            title.contains("snack", ignoreCase = true) -> "healthy snack"
+            else -> "meal"
+        }
+    }
+
+    private fun extractMonitoringType(title: String): String {
+        return when {
+            title.contains("pressure", ignoreCase = true) -> "blood pressure"
+            title.contains("sugar", ignoreCase = true) || title.contains("glucose", ignoreCase = true) -> "blood sugar"
+            title.contains("weight", ignoreCase = true) -> "weight"
+            title.contains("temperature", ignoreCase = true) -> "temperature"
+            else -> "health parameters"
+        }
+    }
 }

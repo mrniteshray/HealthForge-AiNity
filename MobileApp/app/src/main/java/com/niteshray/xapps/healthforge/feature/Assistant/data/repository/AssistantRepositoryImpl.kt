@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import com.niteshray.xapps.healthforge.core.di.CerebrasApi
 import com.niteshray.xapps.healthforge.core.di.ChatRequest
 import com.niteshray.xapps.healthforge.core.di.Message
@@ -16,6 +17,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -26,14 +28,24 @@ class AssistantRepositoryImpl @Inject constructor(
     private val cerebrasApi: CerebrasApi
 ) : AssistantRepository {
 
+    private var textToSpeech: TextToSpeech? = null
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
+    private var isTtsInitialized = false
 
     init {
+        initializeTts()
         initializeSpeechRecognizer()
     }
 
-
+    private fun initializeTts() {
+        textToSpeech = TextToSpeech(context) { status ->
+            isTtsInitialized = status == TextToSpeech.SUCCESS
+            if (isTtsInitialized) {
+                textToSpeech?.language = Locale.getDefault()
+            }
+        }
+    }
 
     private fun initializeSpeechRecognizer() {
         try {
