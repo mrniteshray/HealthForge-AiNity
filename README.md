@@ -10,9 +10,6 @@
   <a href="https://firebase.google.com/" target="_blank">
     <img src="https://img.shields.io/badge/Backend-Firebase%20%2F%20MERN-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Backend: Firebase / MERN">
   </a>
-  <a href="https://cloud.google.com/ai-platform" target="_blank">
-    <img src="https://img.shields.io/badge/AI%20Engine-Gemini%20%26%20NLP-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white" alt="AI Engine: Gemini & NLP">
-  </a>
 </p>
 
 ---
