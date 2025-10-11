@@ -36,13 +36,11 @@ import com.niteshray.xapps.healthforge.feature.careconnect.data.models.*
 @Composable
 fun AddGuardianDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, GuardianRelationship, List<PermissionType>, String) -> Unit
+    onAdd: (String, GuardianRelationship, String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var selectedRelationship by remember { mutableStateOf(GuardianRelationship.FAMILY) }
-    var selectedPermissions by remember { mutableStateOf(setOf<PermissionType>()) }
     var message by remember { mutableStateOf("") }
-    var showPermissionDetails by remember { mutableStateOf(false) }
     var currentStep by remember { mutableStateOf(0) }
     
     val focusManager = LocalFocusManager.current
@@ -52,8 +50,7 @@ fun AddGuardianDialog(
     val canProceed = when (currentStep) {
         0 -> isEmailValid
         1 -> selectedRelationship != null
-        2 -> selectedPermissions.isNotEmpty()
-        3 -> true // Message is optional
+        2 -> true // Message is optional
         else -> false
     }
 
@@ -106,7 +103,7 @@ fun AddGuardianDialog(
                 // Progress Indicator
                 StepProgressIndicator(
                     currentStep = currentStep,
-                    totalSteps = 4
+                    totalSteps = 3
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -130,12 +127,7 @@ fun AddGuardianDialog(
                             selectedRelationship = selectedRelationship,
                             onRelationshipChange = { selectedRelationship = it }
                         )
-                        2 -> PermissionsStep(
-                            selectedPermissions = selectedPermissions,
-                            onPermissionsChange = { selectedPermissions = it },
-                            onShowDetails = { showPermissionDetails = true }
-                        )
-                        3 -> MessageStep(
+                        2 -> MessageStep(
                             message = message,
                             onMessageChange = { message = it },
                             guardianName = email.substringBefore("@")
@@ -161,10 +153,10 @@ fun AddGuardianDialog(
                     
                     Button(
                         onClick = {
-                            if (currentStep < 3) {
+                            if (currentStep < 2) {
                                 currentStep++
                             } else {
-                                onAdd(email, selectedRelationship, selectedPermissions.toList(), message)
+                                onAdd(email, selectedRelationship, message)
                             }
                         },
                         enabled = canProceed,
@@ -174,20 +166,13 @@ fun AddGuardianDialog(
                         )
                     ) {
                         Text(
-                            text = if (currentStep < 3) "Next" else "Send Request",
+                            text = if (currentStep < 2) "Next" else "Send Request",
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
             }
         }
-    }
-
-    // Permission Details Dialog
-    if (showPermissionDetails) {
-        PermissionDetailsDialog(
-            onDismiss = { showPermissionDetails = false }
-        )
     }
 }
 

@@ -18,9 +18,9 @@ data class CareConnectUiState(
     val guardians: List<Guardian> = emptyList(),
     val guardees: List<Guardee> = emptyList(),
     val pendingRequests: List<GuardianRequest> = emptyList(),
-    val outgoingRequests: List<GuardianRequest> = emptyList(), // Requests sent by current user
     val stats: CareConnectStats = CareConnectStats(),
     val errorMessage: String? = null,
+    val successMessage: String? = null,
     val showAddGuardianDialog: Boolean = false,
     val selectedTab: CareConnectTab = CareConnectTab.OVERVIEW,
     val currentUserId: String? = null
@@ -49,7 +49,6 @@ class CareConnectViewModel @Inject constructor(
     private var guardiansListener: ListenerRegistration? = null
     private var guardeesListener: ListenerRegistration? = null
     private var pendingRequestsListener: ListenerRegistration? = null
-    private var outgoingRequestsListener: ListenerRegistration? = null
 
     init {
         setupRealtimeListeners()
@@ -66,7 +65,6 @@ class CareConnectViewModel @Inject constructor(
                 setupGuardiansListener(userId)
                 setupGuardeesListener(userId)
                 setupPendingRequestsListener(email)
-                setupOutgoingRequestsListener(userId)
             }
         }
     }
@@ -234,56 +232,6 @@ class CareConnectViewModel @Inject constructor(
             }
     }
 
-    // Setup real-time listener for outgoing requests (requests sent by current user)
-    private fun setupOutgoingRequestsListener(userId: String) {
-        outgoingRequestsListener = firestore
-            .collection("guardianRequests")
-            .whereEqualTo("fromUserId", userId)
-            .whereEqualTo("status", RequestStatus.PENDING.name)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message ?: "Failed to load outgoing requests"
-                    )
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val outgoingRequests = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            GuardianRequest(
-                                id = doc.id,
-                                fromUserId = doc.getString("fromUserId") ?: "",
-                                toUserId = doc.getString("toUserId") ?: "",
-                                fromUserName = doc.getString("fromUserName") ?: "",
-                                fromUserEmail = doc.getString("fromUserEmail") ?: "",
-                                toUserEmail = doc.getString("toUserEmail") ?: "",
-                                requestedPermissions = (doc.get("requestedPermissions") as? List<*>)?.mapNotNull { permission ->
-                                    try { PermissionType.valueOf(permission.toString()) } catch (e: Exception) { null }
-                                } ?: emptyList(),
-                                relationship = GuardianRelationship.valueOf(
-                                    doc.getString("relationship") ?: "OTHER"
-                                ),
-                                message = doc.getString("message") ?: "",
-                                status = RequestStatus.valueOf(doc.getString("status") ?: "PENDING"),
-                                createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                                respondedAt = doc.getLong("respondedAt")
-                            )
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-
-                    _uiState.value = _uiState.value.copy(
-                        outgoingRequests = outgoingRequests,
-                        errorMessage = null
-                    )
-                    updateStats()
-                }
-            }
-    }
-
     // Update stats based on loaded data
     private fun updateStats() {
         val currentState = _uiState.value
@@ -300,7 +248,6 @@ class CareConnectViewModel @Inject constructor(
     fun addGuardian(
         email: String,
         relationship: GuardianRelationship,
-        permissions: List<PermissionType>,
         message: String
     ) {
         viewModelScope.launch {
@@ -330,13 +277,14 @@ class CareConnectViewModel @Inject constructor(
                     toUserId = targetUser.id,
                     toUserEmail = email,
                     relationship = relationship,
-                    permissions = permissions,
+                    permissions = emptyList(), // No permissions required, just basic task analysis access
                     message = message
                 )
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    showAddGuardianDialog = false
+                    showAddGuardianDialog = false,
+                    successMessage = "Guardian request sent successfully!"
                 )
                 
                 // Real-time listeners will automatically update the data
@@ -557,12 +505,15 @@ class CareConnectViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
+    fun clearSuccessMessage() {
+        _uiState.value = _uiState.value.copy(successMessage = null)
+    }
+
     fun refreshData() {
         // Remove existing listeners and setup new ones
         guardiansListener?.remove()
         guardeesListener?.remove()
         pendingRequestsListener?.remove()
-        outgoingRequestsListener?.remove()
         
         // Re-setup listeners
         setupRealtimeListeners()
@@ -636,6 +587,5 @@ class CareConnectViewModel @Inject constructor(
         guardiansListener?.remove()
         guardeesListener?.remove()
         pendingRequestsListener?.remove()
-        outgoingRequestsListener?.remove()
     }
 }

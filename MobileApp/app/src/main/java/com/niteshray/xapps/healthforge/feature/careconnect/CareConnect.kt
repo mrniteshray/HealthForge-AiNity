@@ -36,13 +36,30 @@ fun CareConnectScreen(
     viewModel: com.niteshray.xapps.healthforge.feature.careconnect.presentation.viewmodel.CareConnectViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp)
-    ) {
+    // Show success message as snackbar
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearSuccessMessage()
+        }
+    }
+
+    Scaffold(
+        modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.surface
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
         // Simple Header
         SimpleHeader(
             onAddGuardian = { viewModel.showAddGuardianDialog() }
@@ -114,7 +131,7 @@ fun CareConnectScreen(
                         )
                     }
                     
-                    if (uiState.guardians.isEmpty() && uiState.outgoingRequests.isEmpty()) {
+                    if (uiState.guardians.isEmpty()) {
                         item {
                             EmptyStateCard(
                                 title = "No Guardians Yet",
@@ -123,7 +140,7 @@ fun CareConnectScreen(
                             )
                         }
                     } else {
-                        // Show accepted guardians
+                        // Show only accepted guardians
                         items(uiState.guardians) { guardian ->
                             SimplePersonItem(
                                 name = guardian.name,
@@ -132,19 +149,6 @@ fun CareConnectScreen(
                                 icon = guardian.relationship.icon,
                                 isGuardian = true,
                                 onRemove = { viewModel.removeGuardian(guardian.id) }
-                            )
-                        }
-                        
-                        // Show pending outgoing requests (people current user asked to be their guardian)
-                        items(uiState.outgoingRequests) { request ->
-                            SimplePersonItem(
-                                name = request.toUserEmail.substringBefore("@"), // Use part before @ as display name
-                                email = request.toUserEmail,
-                                relationship = request.relationship.displayName,
-                                icon = request.relationship.icon,
-                                isGuardian = true,
-                                status = "Requested",
-                                onRemove = { /* TODO: Add cancel request functionality */ }
                             )
                         }
                     }
@@ -181,16 +185,16 @@ fun CareConnectScreen(
                 }
             }
         }
-    }
 
-    // Add Guardian Dialog
-    if (uiState.showAddGuardianDialog) {
-        AddGuardianDialog(
-            onDismiss = { viewModel.hideAddGuardianDialog() },
-            onAdd = { email, relationship, permissions, message ->
-                viewModel.addGuardian(email, relationship, permissions, message)
-            }
-        )
+        // Add Guardian Dialog
+        if (uiState.showAddGuardianDialog) {
+            AddGuardianDialog(
+                onDismiss = { viewModel.hideAddGuardianDialog() },
+                onAdd = { email, relationship, message ->
+                    viewModel.addGuardian(email, relationship, message)
+                }
+            )
+        }
     }
 }
 
