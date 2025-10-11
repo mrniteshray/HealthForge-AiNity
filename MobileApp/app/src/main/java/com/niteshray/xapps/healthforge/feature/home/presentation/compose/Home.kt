@@ -19,7 +19,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     onLogout : () -> Unit,
-    onNavigateToAssistant : () -> Unit
+    onNavigateToAssistant : () -> Unit,
+    onNavigateToAnalytics : () -> Unit
 ) {
     val bottomNavItems = listOf(
         BottomNavItem.Home,
@@ -53,7 +54,7 @@ fun HomeScreen(
                         onNavigateToAssistant()
                     },
                     onNavigateToAnalytics = {
-//                        will implement later
+                        onNavigateToAnalytics()
                     }
                 )
             }

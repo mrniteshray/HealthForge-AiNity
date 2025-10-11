@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.niteshray.xapps.healthforge.feature.Assistant.presentation.AssistantScreen
+import com.niteshray.xapps.healthforge.feature.analytics.presentation.compose.AnalyticsScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.DoctorSetupScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.LoginScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.SignupScreen
@@ -209,7 +210,23 @@ fun App(){
                 },
                 onNavigateToAssistant = {
                     navController.navigate(Routes.Assistant.route)
+                },
+                onNavigateToAnalytics = {
+                    navController.navigate(Routes.Analytics.route)
                 }
+            )
+        }
+
+        composable(Routes.Analytics.route){
+            AnalyticsScreen(
+                templates = emptyList(),
+                templateRecords = emptyMap(),
+                isLoading = false,
+                error = null,
+                onNavigateBack = {},
+                onRefresh = {},
+                onRetry = {},
+                onDateClick = { _, _ -> }
             )
         }
 
