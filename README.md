@@ -62,39 +62,28 @@ HealthForge offers a **Generative AI–driven healthcare companion** that:
 
 ---
 
-### 🍛 3. NutriAI — Smart Indian Diet Coach
-* Generates **AI-driven meal plans** tailored to diseases and region.
-* Suggests affordable, culturally relevant Indian meals.
-* Supports food photo recognition and smart substitutions.
-
----
-
-### 🗣️ 4. AI + Voice Health Assistant
+### 🗣️ 3. AI + Voice Health Assistant
 * Conversational assistant trained on verified medical data.
 * Works in **multiple Indian languages**.
 * Offers **contextual guidance** (“Your sugar levels improved by 10%, great job!”).
 
 ---
 
-### 🔔 5. Smart Notifications
+### 🔔 4. Smart Notifications
 * Reminders for medicines, hydration, meals, and follow-ups.
 * Implemented using **Android WorkManager / AlarmManager**.
 * Customizable frequency and tone.
 
 ---
 
-### 📊 6. Health Analytics Dashboard
+### 📊 5. Health Analytics Dashboard
 * Interactive visual dashboard to track progress.
 * Displays vitals, compliance, and improvement trends.
 
 ---
-
-## 🩺 Extended Modules — Empowering Connected Care
-
-### 🧑‍🤝‍🧑 7. CareConnect — Guardians & Guardees Network
+ 🧑‍🤝‍🧑 6. CareConnect — Guardians & Guardees Network
 
 **CareConnect** connects patients (Guardees) with their caregivers, family, or friends (Guardians) — making recovery collaborative and secure.
-
 **Features:**
 * 👥 **Your Health Network:** View connected guardians and guardees.  
 * ➕ **Add Guardians/Guardees:** Invite via email through an interactive “+ Add” popup modal.  
@@ -105,23 +94,14 @@ HealthForge offers a **Generative AI–driven healthcare companion** that:
 * 🔔 **Instant Alerts:** Guardians receive updates if a guardee misses medicine or reports new symptoms.  
 * 🔒 **Secure Access:** Only verified guardians can access shared insights.
 
-> 💡 *CareConnect transforms recovery into a shared journey — blending empathy with smart connectivity.*
-
 ---
-
-### 🍽️ 8. DietBuddy — Social Nutrition Tracker
-
-**DietBuddy** extends **NutriAI** into a collaborative, motivational nutrition experience.
+ 🍽️ 7. DietBuddy — Social Nutrition Tracker
 
 **Features:**
 * 🤖 **AI Nutrition Pairing:** Connect with users having similar health goals.  
-* 📸 **Meal Sharing:** Upload food photos, get instant AI feedback.  
-* 🧠 **Smart Comparison:** Compare meal quality with peers.  
-* 💬 **Motivational Feed:** Like, comment, and share healthy choices.  
-* 🏆 **Leaderboards & Streaks:** Gamified engagement for consistent nutrition.  
+* 📸 **Meal Sharing:** Upload food photos, get instant AI feedback.   
+* 💬 **Motivational Feed:** Like, comment, and share healthy choices.   
 * 🩺 **Integrated Insights:** Syncs with NutriAI to reflect nutrition score in health analytics.
-
-> 🥗 *DietBuddy makes nutrition fun, social, and rewarding.*
 
 ---
 
