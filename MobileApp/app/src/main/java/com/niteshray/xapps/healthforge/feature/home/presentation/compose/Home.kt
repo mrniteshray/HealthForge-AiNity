@@ -27,8 +27,8 @@ fun HomeScreen(
     val bottomNavItems = listOf(
         BottomNavItem.Home,
         BottomNavItem.DietBuddy,
-        BottomNavItem.Profile,
-        BottomNavItem.CareConnect
+        BottomNavItem.CareConnect,
+        BottomNavItem.Profile
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()

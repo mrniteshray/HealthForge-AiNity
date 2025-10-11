@@ -141,38 +141,66 @@ private fun SimpleHeader(
     onAddGuardian: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.1f)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(20.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        // Left side - Welcome message
+        Column(
+            modifier = Modifier.weight(1f) // Takes remaining space
+        ) {
             Text(
-                text = "CareConnect",
-                style = MaterialTheme.typography.headlineMedium,
+                text = "Your Health Network",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Manage your health guardians",
+                text = "Connect with people who care about you",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        
-        FilledTonalButton(
+
+        Spacer(modifier = Modifier.width(12.dp)) // Space between text and button
+
+        // Right side - Stylish Add Button
+        Surface(
             onClick = onAddGuardian,
-            shape = RoundedCornerShape(12.dp)
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary,
+            shadowElevation = 4.dp,
+            modifier = Modifier.size(56.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.PersonAdd,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Add Guardian")
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Add Guardian",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
+
 
 @Composable 
 private fun SimpleStatsRow(
