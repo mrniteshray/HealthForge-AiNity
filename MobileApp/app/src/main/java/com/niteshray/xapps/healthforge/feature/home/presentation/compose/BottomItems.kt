@@ -4,10 +4,12 @@ package com.niteshray.xapps.healthforge.feature.home.presentation.compose
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,6 +32,13 @@ sealed class BottomNavItem(
         title = "Assistant",
         selectedIcon = Icons.Filled.SmartToy,
         unselectedIcon = Icons.Outlined.SmartToy
+    )
+
+    data object DietBuddy : BottomNavItem(
+        route = "diet_buddy",
+        title = "Diet Buddy",
+        selectedIcon = Icons.Filled.Restaurant,
+        unselectedIcon = Icons.Outlined.Restaurant
     )
 
     data object Profile : BottomNavItem(

@@ -32,6 +32,7 @@ import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.UserRol
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.UserSetupScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.viewmodel.AuthViewModel
 import com.niteshray.xapps.healthforge.feature.home.presentation.compose.HomeScreen
+import com.niteshray.xapps.healthforge.feature.dietbuddy.presentation.compose.DietBuddyScreen
 import com.niteshray.xapps.healthforge.ui.theme.HealthForgeTheme
 import dagger.hilt.android.AndroidEntryPoint
 import okhttp3.Route
@@ -232,6 +233,8 @@ fun App(){
                 }
             )
         }
+
+
 
     }
 }

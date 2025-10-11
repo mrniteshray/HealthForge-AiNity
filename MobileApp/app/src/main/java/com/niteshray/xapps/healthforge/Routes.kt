@@ -8,6 +8,7 @@ sealed class Routes(val route : String) {
     object Analytics : Routes("Analytics")
 
     object Assistant : Routes("Assistant")
+    object DietBuddy : Routes("DietBuddy")
 
 
     object UserSetup : Routes("UserSetup")
