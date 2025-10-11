@@ -18,7 +18,8 @@ import androidx.navigation.compose.rememberNavController
 fun HomeScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    onLogout : () -> Unit
+    onLogout : () -> Unit,
+    onNavigateToAssistant : () -> Unit
 ) {
     val bottomNavItems = listOf(
         BottomNavItem.Home,
@@ -49,7 +50,7 @@ fun HomeScreen(
             composable(BottomNavItem.Home.route) {
                 HealthcareDashboard(
                     onNavigateToAssistant = {
-                        //will implement later
+                        onNavigateToAssistant()
                     },
                     onNavigateToAnalytics = {
 //                        will implement later

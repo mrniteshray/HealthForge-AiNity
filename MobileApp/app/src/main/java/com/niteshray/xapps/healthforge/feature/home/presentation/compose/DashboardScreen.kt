@@ -198,6 +198,20 @@ fun HealthcareDashboard(
             }
         }
     }
+        // AI Assistant FAB
+        FloatingActionButton(
+            onClick = onNavigateToAssistant,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                imageVector = Icons.Default.SmartToy,
+                contentDescription = "AI Assistant",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
 
     }
 

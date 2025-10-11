@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.niteshray.xapps.healthforge.feature.Assistant.presentation.AssistantScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.DoctorSetupScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.LoginScreen
 import com.niteshray.xapps.healthforge.feature.auth.presentation.compose.SignupScreen
@@ -27,6 +28,7 @@ import com.niteshray.xapps.healthforge.feature.auth.presentation.viewmodel.AuthV
 import com.niteshray.xapps.healthforge.feature.home.presentation.compose.HomeScreen
 import com.niteshray.xapps.healthforge.ui.theme.HealthForgeTheme
 import dagger.hilt.android.AndroidEntryPoint
+import okhttp3.Route
 
 
 @AndroidEntryPoint
@@ -165,6 +167,17 @@ fun App(){
                         popUpTo(Routes.Home.route) { inclusive = true }
                         launchSingleTop = true
                     }
+                },
+                onNavigateToAssistant = {
+                    navController.navigate(Routes.Assistant.route)
+                }
+            )
+        }
+
+        composable(Routes.Assistant.route){
+            AssistantScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

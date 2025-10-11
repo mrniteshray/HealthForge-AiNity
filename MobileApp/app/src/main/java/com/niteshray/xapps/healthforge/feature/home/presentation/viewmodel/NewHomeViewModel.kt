@@ -74,7 +74,8 @@ class NewHomeViewModel @Inject constructor(
     private val taskTrackingRepository: TaskTrackingRepository,
     private val firestoreSyncService: FirestoreTaskSyncService,
     private val firestore: FirebaseFirestore
-) : ViewModel() {
+) : ViewModel()
+{
 
     companion object {
         const val TAG = "NewHomeViewModel"
