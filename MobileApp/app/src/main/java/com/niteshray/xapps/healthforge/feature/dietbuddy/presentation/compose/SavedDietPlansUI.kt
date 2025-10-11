@@ -105,7 +105,7 @@ private fun SavedPlanCard(
             containerColor = if (plan.isActive) {
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             } else {
-                Color(0xFFFAFAFA)
+                MaterialTheme.colorScheme.surface
             }
         ),
         shape = RoundedCornerShape(16.dp),

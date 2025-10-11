@@ -55,7 +55,7 @@ fun DietBuddyScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFFFFE)),
+                .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(vertical = 20.dp, horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -157,8 +157,8 @@ private fun CleanHeaderSection() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "DietBuddy",
-                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 32.sp),
-                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
@@ -247,7 +247,7 @@ private fun CleanUploadSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                Color(0xFFF8F9FA),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(16.dp),
@@ -301,7 +301,7 @@ private fun CleanErrorSection(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Color(0xFFFFEBEE).copy(alpha = 0.6f),
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(16.dp),
@@ -316,7 +316,7 @@ private fun CleanErrorSection(
                 modifier = Modifier
                     .size(8.dp)
                     .background(
-                        Color(0xFFE57373),
+                        MaterialTheme.colorScheme.error,
                         shape = CircleShape
                     )
             )
@@ -366,8 +366,8 @@ private fun CleanDietPlanSection(
             Column {
                 Text(
                     text = "Today's Diet Plan",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
@@ -401,7 +401,7 @@ private fun CleanDietPlanSection(
                     onClick = onRegenerate,
                     modifier = Modifier
                         .background(
-                            Color(0xFFF5F5F5),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             shape = CircleShape
                         )
                 ) {
@@ -426,7 +426,7 @@ private fun CleanDietPlanSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Color(0xFFFAFAFA),
+                            MaterialTheme.colorScheme.surface,
                             shape = RoundedCornerShape(16.dp)
                         )
                         .padding(20.dp),
@@ -692,7 +692,7 @@ private fun MealEditDialog(
                 ) {
                     Text(
                         text = "Edit Meal",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
